@@ -42,7 +42,24 @@ class VersionedTextField(models.TextField):
     def get_internal_type(self):
         return "TextField"
     
-    def pre_save(self, model_instance, add):
+#    def pre_save(self, model_instance, add):
+#        data = getattr(model_instance, self.attname)
+#        if not add:
+#            #print "writing: %s" % data
+#            if data is not None:
+#                fobj = open(settings.BZR_WC_PATH+self.svn_path+'%s-%s.txt' % (model_instance.__class__.__name__,model_instance.id), 'w')
+#                fobj.write(data)
+#                fobj.close()
+#                from bzrlib import workingtree
+#                wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+#                try:
+#                    wt.add([self.svn_path+'%s-%s.txt' % (model_instance.__class__.__name__,model_instance.id),])
+#                except:
+#                    pass
+#                wt.commit(message='auto commit from django')
+#        return data
+
+    def pre_save_svn(self, model_instance, add):
         data = getattr(model_instance, self.attname)
         if not add:
             #print "writing: %s" % data
@@ -59,19 +76,26 @@ class VersionedTextField(models.TextField):
                     pass
                 c.checkin(settings.SVN_WC_PATH+self.svn_path, log_message="auto checkin from django")
                 c.update(settings.SVN_WC_PATH+self.svn_path)
-        return data
-            
+        return data            
 
 
-#    def post_init(self, instance=None):
-#        value = self._get_val_from_obj(instance)
-#        if value:
-#            setattr(instance, self.attname, value)
-
+    def post_save(self, instance=None):
+        '''create a file and add to the repository, if not already existing'''
+        data = getattr(instance, self.attname)
+        if data is not None:
+            fobj = open(settings.BZR_WC_PATH+self.svn_path+'%s-%s.txt' % (instance.__class__.__name__,instance.id), 'w')
+            fobj.write(data)
+            fobj.close()
+            from bzrlib import workingtree
+            wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+            try:
+                wt.add([self.svn_path+'%s-%s.txt' % (instance.__class__.__name__,instance.id),])
+            except:
+                pass
+            wt.commit(message='auto commit from django')
 
                     
-#    def contribute_to_class(self, cls, name):
-#        super(VersionedTextField, self).contribute_to_class(cls, name)
-
-#        #dispatcher.connect(self.post_init, signal=signals.post_init, sender=cls)
+    def contribute_to_class(self, cls, name):
+        super(VersionedTextField, self).contribute_to_class(cls, name)
+        dispatcher.connect(self.post_save, signal=signals.post_save, sender=cls)
 
