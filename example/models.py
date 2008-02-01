@@ -6,7 +6,7 @@ from rcsfield.models import VersionizedModelMixIn
 
 class Entry(models.Model, VersionizedModelMixIn):
     slug = models.SlugField()
-    text = VersionedTextField(svn_path='/test/', blank=True, null=True)
+    text = VersionedTextField(blank=True, null=True)
     
     objects = RevisionManager()
     

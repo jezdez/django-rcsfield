@@ -34,26 +34,30 @@ class VersionedTextField(models.TextField):
     #we need this, to know if we can fetch old revisions.
     IS_VERSIONED = True
     
-    def __init__(self, *args, **kwargs):
-        assert kwargs.get('svn_path', False) is not False, "%ss must have a svn_path argument" % self.__class__.__name__
-        self.svn_path = kwargs.get('svn_path')
-        del kwargs['svn_path']
-        TextField.__init__(self, *args, **kwargs)
+ #   def __init__(self, *args, **kwargs):
+  #      #FIXME: we sould default to the app_label
+   #     assert kwargs.get('svn_path', False) is not False, "%ss must have a svn_path argument" % self.__class__.__name__
+    #    self.svn_path = kwargs.get('svn_path')
+     #   del kwargs['svn_path']
+      #  TextField.__init__(self, *args, **kwargs)
         
     def get_internal_type(self):
         return "TextField"
 
     def post_save(self, instance=None):
-        '''create a file and add to the repository, if not already existing'''
+        '''
+        create a file and add to the repository, if not already existing
+        called via post_save signal
+        '''
         data = getattr(instance, self.attname)
         if data is not None: #@@FIXME: I think if data is None, an empty file should be written.
-            fobj = open(settings.BZR_WC_PATH+self.svn_path+'%s_%s-%s.txt' % (instance.__class__.__name__,self.attname,instance.id), 'w')
+            fobj = open(settings.BZR_WC_PATH+'/%s/%s_%s-%s.txt' % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id), 'w')
             fobj.write(data)
             fobj.close()
             from bzrlib import workingtree
             wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
             try:
-                wt.add([self.svn_path+'%s_%s-%s.txt' % (instance.__class__.__name__,self.attname,instance.id),])
+                wt.add(['%s/%s_%s-%s.txt' % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id),])
             except:
                 pass
             wt.commit(message='auto commit from django')

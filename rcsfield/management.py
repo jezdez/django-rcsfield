@@ -15,7 +15,7 @@ def initial_checkout(*args, **kwargs):
     for all fields that are versionized. 
     called via post_syncdb signal from django.
     
-    currently hardcoded for bzr
+    TODO:currently hardcoded for bzr
     '''
     if len(kwargs['created_models']) > 0:
         for model in kwargs['created_models']:
@@ -24,17 +24,16 @@ def initial_checkout(*args, **kwargs):
                     if kwargs['sender'].__name__.split('.')[-2] == model._meta.app_label: 
                         print "%s has field %s as reported by %s" % (model.__name__, VersionedTextField.__name__, kwargs['sender'].__name__)
                         # create standalone bzr workingtree here
-                        print "will bzr init %s" % (settings.BZR_WC_PATH)
+                        print "will bzr init %s/%s" % (settings.BZR_WC_PATH, model._meta.app_label)
                         from bzrlib import bzrdir, workingtree
                         if not os.path.exists(settings.BZR_WC_PATH):
                             os.mkdir(settings.BZR_WC_PATH)
                         else:
                             raise Exception('Directory %s already exists, please change your settings or delete the directory' % settings.BZR_WC_PATH)
-                        #FIXME:cls is the class of the last field in the model!!!
-                        if not os.path.exists(settings.BZR_WC_PATH+field.svn_path):
-                            os.mkdir(settings.BZR_WC_PATH+field.svn_path)
+                        if not os.path.exists(settings.BZR_WC_PATH+'/%s' % model._meta.app_label):
+                            os.mkdir(settings.BZR_WC_PATH+'/%s' % model._meta.app_label)
                         wt = bzrdir.BzrDir.create_standalone_workingtree(settings.BZR_WC_PATH)
-                        wt.add([field.svn_path,])
+                        wt.add(['%s' % model._meta.app_label,])
                         wt.commit(message="initial directory added")
 
 dispatcher.connect(initial_checkout, signal=signals.post_syncdb)
