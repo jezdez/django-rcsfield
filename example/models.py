@@ -4,7 +4,7 @@ from rcsfield.fields import VersionedTextField
 from rcsfield.manager import RevisionManager
 from rcsfield.models import VersionizedModelMixIn
 
-class Entry(models.Model, VersionizedModelMixIn):
+class Entry(models.Model):
     slug = models.SlugField()
     text = VersionedTextField(blank=True, null=True)
     

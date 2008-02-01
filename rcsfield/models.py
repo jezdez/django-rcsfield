@@ -42,5 +42,7 @@ class VersionizedModelMixIn(object):
         
     def get_my_fileid(self, fieldname):
         wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-        path = self._meta.fields[2].svn_path+'%s_%s-%s.txt' % (self.__class__.__name__,fieldname, self.id) #FIXME:harcoded
+        path = '%s/%s_%s-%s.txt' % (self._meta.app_label, self.__class__.__name__,fieldname, self.id) #FIXME:harcoded
         return wt.path2id(path)
+        
+        
