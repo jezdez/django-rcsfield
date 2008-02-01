@@ -7,9 +7,9 @@ import os
 from django.conf import settings
 from django.dispatch import dispatcher
 from django.db.models import get_models, signals
-from fields import VersionedTextField #relative import
+from fields import VersionedTextField
 
-def initial_checkout(*args, **kwargs):
+def initial_checkout(sender, created_models, verbosity):
     '''
     creates the repository / does the initial checkout
     for all fields that are versionized. 
@@ -17,23 +17,26 @@ def initial_checkout(*args, **kwargs):
     
     TODO:currently hardcoded for bzr
     '''
-    if len(kwargs['created_models']) > 0:
-        for model in kwargs['created_models']:
-            for field in model._meta.fields:
-                if field.__class__ == VersionedTextField:
-                    if kwargs['sender'].__name__.split('.')[-2] == model._meta.app_label: 
-                        print "%s has field %s as reported by %s" % (model.__name__, VersionedTextField.__name__, kwargs['sender'].__name__)
-                        # create standalone bzr workingtree here
-                        print "will bzr init %s/%s" % (settings.BZR_WC_PATH, model._meta.app_label)
-                        from bzrlib import bzrdir, workingtree
-                        if not os.path.exists(settings.BZR_WC_PATH):
-                            os.mkdir(settings.BZR_WC_PATH)
-                        else:
-                            raise Exception('Directory %s already exists, please change your settings or delete the directory' % settings.BZR_WC_PATH)
-                        if not os.path.exists(settings.BZR_WC_PATH+'/%s' % model._meta.app_label):
-                            os.mkdir(settings.BZR_WC_PATH+'/%s' % model._meta.app_label)
-                        wt = bzrdir.BzrDir.create_standalone_workingtree(settings.BZR_WC_PATH)
-                        wt.add(['%s' % model._meta.app_label,])
-                        wt.commit(message="initial directory added")
+    from bzrlib import bzrdir, workingtree
+    sender_name = sender.__name__.split('.')[-2]
+    checkout_path = os.path.normpath(settings.BZR_WC_PATH)
+    for model in created_models:
+        app_label = model._meta.app_label
+        for field in model._meta.fields:
+            if field.__class__ == VersionedTextField:
+                if sender_name == app_label: 
+                    if verbosity >= 1:
+                        print "%s found in %s.models.%s" % (VersionedTextField.__name__, sender_name, model.__name__)
+                        print "Will create an empty bzr branch in %s" % checkout_path
+                    if not os.path.exists(checkout_path):
+                        os.mkdir(checkout_path)
+                    else:
+                        raise Exception('Directory %s already exists, please change your settings or delete the directory' % checkout_path)
+                    field_path = os.path.normpath(os.path.join(checkout_path, app_label))
+                    if not os.path.exists(field_path):
+                        os.mkdir(field_path)
+                    wt = bzrdir.BzrDir.create_standalone_workingtree(checkout_path)
+                    wt.add(['%s' % app_label,])
+                    wt.commit(message="initial directory added")
 
 dispatcher.connect(initial_checkout, signal=signals.post_syncdb)
