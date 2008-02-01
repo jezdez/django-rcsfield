@@ -64,7 +64,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.doc.XViewMiddleware',
 )
 
-ROOT_URLCONF = 'djangorcsfield.urls'
+ROOT_URLCONF = 'urls'
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
@@ -80,6 +80,8 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'example',
     'rcsfield',
+    'text',
+    'test',
 )
 
 import os
@@ -87,5 +89,6 @@ import os
 #SVN_ROOT = "https://svn.example.com/repo" #no trailing slash
 #SVN_WC_PATH = os.path.join(os.path.dirname(__file__), 'svn')
 BZR_WC_PATH = os.path.join(os.path.dirname(__file__), 'bzr') 
+#TODO: call this RCS_WC_PATH and the directory 'rcs'.
 
 from settings_local import * #used to override SVN_ROOT for local dev
