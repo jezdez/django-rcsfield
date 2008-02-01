@@ -28,7 +28,7 @@ class VersionizedModelMixIn(object):
                 return changes[fileid]
         return changes
         
-    def get_changed_revisions(self,fieldname='content'): #FIXME:hardcoded
+    def get_changed_revisions(self,fieldname='text'): #FIXME:hardcoded
         wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
         changed_in = self.get_changes(fieldname)
         crevs = []
@@ -42,5 +42,5 @@ class VersionizedModelMixIn(object):
         
     def get_my_fileid(self, fieldname):
         wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-        path = self._meta.fields[4].svn_path+'%s_%s-%s.txt' % (self.__class__.__name__,fieldname, self.id) #FIXME:harcoded
+        path = self._meta.fields[2].svn_path+'%s_%s-%s.txt' % (self.__class__.__name__,fieldname, self.id) #FIXME:harcoded
         return wt.path2id(path)
