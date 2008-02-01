@@ -3,7 +3,7 @@ from django.conf import settings
 from django.db.models import signals, TextField
 from django.dispatch import dispatcher
 from django.utils.functional import curry
-import urlparse, pysvn
+import urlparse
 
 class VersionedTextField(models.TextField):
     '''save contents of the TextField in a svn repository.

@@ -80,8 +80,6 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'example',
     'rcsfield',
-    'text',
-    'test',
 )
 
 import os
@@ -91,4 +89,7 @@ import os
 BZR_WC_PATH = os.path.join(os.path.dirname(__file__), 'bzr') 
 #TODO: call this RCS_WC_PATH and the directory 'rcs'.
 
-from settings_local import * #used to override SVN_ROOT for local dev
+try:
+    from settings_local import * #used to override SVN_ROOT for local dev
+except ImportError:
+    pass

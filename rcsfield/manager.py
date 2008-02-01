@@ -2,7 +2,6 @@ from django.db import models, backend, connection, transaction
 from django.conf import settings
 from django.core.validators import integer_re
 from django.db.models.query import QuerySet, GET_ITERATOR_CHUNK_SIZE 
-import pysvn
 
 class BzrQuerySet(QuerySet):
     '''subclasses QuerySet to fetch older revisions from bzr'''
