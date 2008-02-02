@@ -5,6 +5,7 @@ from django.dispatch import dispatcher
 from django.utils.functional import curry
 from bzrlib import workingtree, revisiontree, tree, workingtree_4, dirstate
 from bzrlib.errors import NoSuchRevision
+from manager import RevisionManager
 import urlparse
 
 class VersionedTextField(models.TextField):
@@ -90,27 +91,20 @@ class VersionedTextField(models.TextField):
             except:
                 pass
         crevs.sort(reverse=True)
-        return crevs[1:15]
+        return crevs[1:15] #FIXME:better handle this limit on app-level, not here
     
     def get_my_fileid(self, instance, field):
         wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
         path = '%s/%s_%s-%s.txt' % (instance._meta.app_label, instance.__class__.__name__,field.attname, instance.id)
         return wt.path2id(path)        
-    
-    #def get_foo_bar(self, instance, field):
-     #   print self
-      #  print instance.__class__
-       # print field
-        #only for testing
-    #    return [0,1]    
+
                
     def contribute_to_class(self, cls, name):
         super(VersionedTextField, self).contribute_to_class(cls, name)
-        #setattr(cls, 'get_foo_bar', curry(self.get_foo_bar, field=self))
         setattr(cls, 'get_my_fileid', curry(self.get_my_fileid, field=self))
         setattr(cls, 'get_revisions', curry(self.get_revisions))
         setattr(cls, 'get_changes', curry(self.get_changes, field=self))
         setattr(cls, 'get_changed_revisions', curry(self.get_changed_revisions, field=self))
-        #TODO: can we set methods from VersionizedModelMixIn here ?
+        setattr(cls, 'objects', RevisionManager())
         dispatcher.connect(self.post_save, signal=signals.post_save, sender=cls)
 
