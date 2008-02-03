@@ -96,13 +96,17 @@ class VersionedTextField(models.TextField):
     def get_my_fileid(self, instance, field):
         wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
         path = '%s/%s_%s-%s.txt' % (instance._meta.app_label, instance.__class__.__name__,field.attname, instance.id)
-        return wt.path2id(path)        
+        return wt.path2id(path)
+        
+    def get_FIELD_revisions(self, instance, field):
+        return self.get_revisions(instance)
 
                
     def contribute_to_class(self, cls, name):
         super(VersionedTextField, self).contribute_to_class(cls, name)
         setattr(cls, 'get_my_fileid', curry(self.get_my_fileid, field=self))
         setattr(cls, 'get_revisions', curry(self.get_revisions))
+        setattr(cls, 'get_%s_revisions' % self.name, curry(self.get_FIELD_revisions, field=self))
         setattr(cls, 'get_changes', curry(self.get_changes, field=self))
         setattr(cls, 'get_changed_revisions', curry(self.get_changed_revisions, field=self))
         setattr(cls, 'objects', RevisionManager())
