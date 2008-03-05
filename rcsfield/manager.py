@@ -1,7 +1,8 @@
 from django.db import models, backend, connection, transaction
 from django.conf import settings
 from django.core.validators import integer_re
-from django.db.models.query import QuerySet, GET_ITERATOR_CHUNK_SIZE 
+from django.db.models.query import QuerySet, GET_ITERATOR_CHUNK_SIZE
+import os
 
 class BzrQuerySet(QuerySet):
     '''subclasses QuerySet to fetch older revisions from bzr'''
@@ -26,7 +27,9 @@ class BzrQuerySet(QuerySet):
                         rt = wt
                     rt.lock_read()
                     try:
-                        olddata = rt.get_file(rt.path2id(field.svn_path+'%s_%s-%s.txt' % (obj.__class__.__name__,field.attname,obj.id))).read()
+                        #file_path is relative to the repository-root
+                        file_path = '%s/%s_%s-%s.txt' % (obj._meta.app_label,obj.__class__.__name__,field.attname,obj.id)
+                        olddata = rt.get_file(rt.path2id(file_path)).read()
                     except:
                         #raise
                         # may raise bzrlib.errors.

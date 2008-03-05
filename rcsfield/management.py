@@ -7,7 +7,7 @@ import os
 from django.conf import settings
 from django.dispatch import dispatcher
 from django.db.models import get_models, signals
-from fields import VersionedTextField
+from fields import RcsTextField
 
 def initial_checkout(sender, created_models, verbosity):
     '''
@@ -26,7 +26,7 @@ def initial_checkout(sender, created_models, verbosity):
             if field.__class__ == VersionedTextField:
                 if sender_name == app_label: 
                     if verbosity >= 1:
-                        print "%s found in %s.models.%s" % (VersionedTextField.__name__, sender_name, model.__name__)
+                        print "%s found in %s.models.%s" % (RcsTextField.__name__, sender_name, model.__name__)
                         print "Will create an empty bzr branch in %s" % checkout_path
                     if not os.path.exists(checkout_path):
                         os.mkdir(checkout_path)

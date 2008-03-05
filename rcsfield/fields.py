@@ -8,7 +8,7 @@ from bzrlib.errors import NoSuchRevision
 from manager import RevisionManager
 import urlparse
 
-class VersionedTextField(models.TextField):
+class RcsTextField(models.TextField):
     '''save contents of the TextField in a svn repository.
     The field has a mandatory argument: the base path, where
     to save the content as `pk`.txt in the svn repository
@@ -48,17 +48,17 @@ class VersionedTextField(models.TextField):
         FIXME: currently hardcoded for bzr
         '''
         data = getattr(instance, self.attname)
-        if data is not None: #@@FIXME: I think if data is None, an empty file should be written.
-            fobj = open(settings.BZR_WC_PATH+'/%s/%s_%s-%s.txt' % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id), 'w')
-            fobj.write(data)
-            fobj.close()
-            from bzrlib import workingtree
-            wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-            try:
-                wt.add(['%s/%s_%s-%s.txt' % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id),])
-            except:
-                pass
-            wt.commit(message='auto commit from django')
+        #if data is not None: #@@FIXME: I think if data is None, an empty file should be written.
+        fobj = open(settings.BZR_WC_PATH+'/%s/%s_%s-%s.txt' % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id), 'w')
+        fobj.write(data)
+        fobj.close()
+        from bzrlib import workingtree
+        wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+        try:
+            wt.add(['%s/%s_%s-%s.txt' % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id),])
+        except:
+            pass
+        wt.commit(message='auto commit from django')
             
     def get_revisions(self, instance, raw=False):
         wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
@@ -103,12 +103,12 @@ class VersionedTextField(models.TextField):
 
                
     def contribute_to_class(self, cls, name):
-        super(VersionedTextField, self).contribute_to_class(cls, name)
+        super(RcsTextField, self).contribute_to_class(cls, name)
         setattr(cls, 'get_my_fileid', curry(self.get_my_fileid, field=self))
         setattr(cls, 'get_revisions', curry(self.get_revisions))
         setattr(cls, 'get_%s_revisions' % self.name, curry(self.get_FIELD_revisions, field=self))
         setattr(cls, 'get_changes', curry(self.get_changes, field=self))
         setattr(cls, 'get_changed_revisions', curry(self.get_changed_revisions, field=self))
-        setattr(cls, 'objects', RevisionManager())
+        cls.add_to_class('objects', RevisionManager())
         dispatcher.connect(self.post_save, signal=signals.post_save, sender=cls)
 
