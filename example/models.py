@@ -9,6 +9,9 @@ class Entry(models.Model):
     def __str__(self):
         return self.slug
         
+    def get_absolute_url(self):
+        return "foo"  
+        
     class Admin:
         pass
     
