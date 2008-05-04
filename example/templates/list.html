@@ -1,7 +1,0 @@
-{% load historytrail %} 
-{% for object in object_list %}
-<p>{{ object.slug }}:<br />
-{{ object.text|linebreaksbr }}
-{% historytrail object %} </p>
-{% endfor %} 
- 
