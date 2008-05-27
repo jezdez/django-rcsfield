@@ -19,9 +19,9 @@ class HistoryTrailNode(template.Node):
         out = ""
         for c, rev in enumerate(revs):
             if c > 0:
-                out += '<a href="diff/%s/%s/">&larr;</a> <a href="rev/%s/">[%s]</a> ' %(rev,revs[c-1],rev,rev)
+                out += '<a rel="nofollow" href="%sdiff/%s/%s/">&larr;</a> <a rel="nofollow" href="%srev/%s/">[%s]</a> ' %(self.instance.get_absolute_url(),rev,revs[c-1],self.instance.get_absolute_url(),rev,rev)
             else:
-                out += '<a href="%s">head</a> <a href="diff/%s/head/">&larr;</a> <a href="rev/%s/">[%s]</a> ' % (self.instance.get_absolute_url(), rev, rev, rev)
+                out += '<a rel="nofollow" href="%s">head</a> <a rel="nofollow" href="%sdiff/%s/head/">&larr;</a> <a rel="nofollow" href="%srev/%s/">[%s]</a> ' % (self.instance.get_absolute_url(), self.instance.get_absolute_url(), rev, self.instance.get_absolute_url(), rev, rev)
         return out
         
 def historytrail(parser, token):
