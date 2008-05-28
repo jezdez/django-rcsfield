@@ -23,7 +23,7 @@ def initial_checkout(sender, created_models, verbosity):
     for model in created_models:
         app_label = model._meta.app_label
         for field in model._meta.fields:
-            if field.__class__ == VersionedTextField:
+            if field.__class__ == RcsTextField:
                 if sender_name == app_label: 
                     if verbosity >= 1:
                         print "%s found in %s.models.%s" % (RcsTextField.__name__, sender_name, model.__name__)
