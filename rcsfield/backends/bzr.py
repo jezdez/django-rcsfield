@@ -4,9 +4,11 @@ Bazaar backend for django-rcsfield.
 Uses bzrlib http://bazaar-vcs.org to versionize content.
 """
 
+import os
 from django.conf import settings
 from bzrlib import bzrdir, workingtree, revisiontree, tree, workingtree_4, dirstate
 from bzrlib.errors import NoSuchRevision as BzrNoSuchRevision
+from bzrlib.errors import FileExists
 from rcsfield.backends.base import BaseBackend
 
 
@@ -17,12 +19,27 @@ class BzrBackend(BaseBackend):
     
     """
     
-    def initial(self):
+    def initial(self, prefix):
         """
         Set up the brz repo at ``settings.BZR_WC_PATH``.
+        And add initial directory to the repo.
         
         """
-        pass
+        checkout_path = os.path.normpath(settings.BZR_WC_PATH)
+        if not os.path.exists(checkout_path):
+            os.makedirs(checkout_path)
+        
+        try:
+            wt = bzrdir.BzrDir.create_standalone_workingtree(checkout_path)
+        except FileExists:
+            # already under version control
+            wt = workingtree.WorkingTree.open(checkout_path)
+
+        field_path = os.path.normpath(os.path.join(checkout_path, prefix))
+        if not os.path.exists(field_path):
+            os.makedirs(field_path)
+            wt.smart_add(['%s' % field_path,])
+            wt.commit(message="adding initial directory for %s" % prefix)
         
         
     def fetch(self, key, rev):
@@ -57,7 +74,15 @@ class BzrBackend(BaseBackend):
         commit changed ``data`` to the entity identified by ``key``.
         
         """
-        pass
+        fobj = open(os.path.join(settings.BZR_WC_PATH, key), 'w')
+        fobj.write(data)
+        fobj.close()
+        wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+        try:
+            wt.add([key,])
+        except:
+            raise
+        wt.commit(message='auto commit from django')
 
 
     

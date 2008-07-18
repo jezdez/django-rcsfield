@@ -8,6 +8,9 @@ from bzrlib.errors import NoSuchRevision
 from manager import RevisionManager
 import urlparse
 
+from rcsfield.backends import backend
+
+
 class RcsTextField(models.TextField):
     '''save contents of the TextField in a svn repository.
     The field has a mandatory argument: the base path, where
@@ -41,24 +44,18 @@ class RcsTextField(models.TextField):
         return "TextField"
 
     def post_save(self, instance=None):
-        '''
+        """
         create a file and add to the repository, if not already existing
         called via post_save signal
         
-        FIXME: currently hardcoded for bzr
-        '''
+        """
         data = getattr(instance, self.attname)
-        #if data is not None: #@@FIXME: I think if data is None, an empty file should be written.
-        fobj = open(settings.BZR_WC_PATH+'/%s/%s_%s-%s.txt' % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id), 'w')
-        fobj.write(data)
-        fobj.close()
-        from bzrlib import workingtree
-        wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+        key = "%s/%s/%s/%s.txt" % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id)
         try:
-            wt.add(['%s/%s_%s-%s.txt' % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id),])
+            backend.commit(key, data)
         except:
-            pass
-        wt.commit(message='auto commit from django')
+            raise
+
             
     def get_revisions(self, instance, raw=False):
         wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
