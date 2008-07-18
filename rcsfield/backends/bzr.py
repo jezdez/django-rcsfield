@@ -83,6 +83,39 @@ class BzrBackend(BaseBackend):
         except:
             raise
         wt.commit(message='auto commit from django')
+        
+        
+    def get_revisions(self, key):
+        """
+        returns a list with all revisions at which ``key`` was changed.
+        Revision Numbers are integers starting at 1.
+        
+        """
+        wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+        file_id = wt.path2id(key)
+        revisions = wt.branch.repository.all_revision_ids() # bzr ids
+
+        wt.lock_read()
+        try:
+            changes = wt.branch.repository.fileids_altered_by_revision_ids(revisions)
+        except:
+            changes = {}
+        finally:
+            wt.unlock()
+        
+        if changes.has_key(file_id):
+            changed_in = changes[file_id]
+        else:
+            changed_in = ()
+                
+        crevs = [] #`key` changed in these revisions
+        for rev_id in changed_in:
+            try:
+                crevs.append(wt.branch.revision_id_to_revno(rev_id))
+            except:
+                pass
+        crevs.sort(reverse=True)
+        return crevs[1:] #cut of the HEAD revision-number
 
 
     
@@ -92,7 +125,8 @@ rcs = BzrBackend()
 fetch = rcs.fetch
 commit = rcs.commit
 initial = rcs.initial
+get_revisions = rcs.get_revisions
 
-__all__ = ('fetch', 'commit', 'initial')
+__all__ = ('fetch', 'commit', 'initial', 'get_revisions')
 
 

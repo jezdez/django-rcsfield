@@ -38,10 +38,27 @@ class RcsTextField(models.TextField):
     '''
     
     #we need this, to know if we can fetch old revisions.
-    IS_VERSIONED = True
+    #IS_VERSIONED = True
+    
+    def __init__(self, *args, **kwargs):
+        """
+        Allow specifying a different format for the key used to identify
+        versionized content in the model-definition.
+        
+        """
+        if kwargs.get('rcskey_format', False):
+            self.rcskey_format = kwargs['rcskey_format']
+            del kwargs['rcskey_format']
+            #TODO: check if the string has the correct format
+        else:
+            self.rcskey_format = "%s/%s/%s/%s.txt"
+        self.IS_VERSIONED = True # so we can figure out that this field is versionized quickly
+        TextField.__init__(self, *args, **kwargs)
+    
         
     def get_internal_type(self):
         return "TextField"
+
 
     def post_save(self, instance=None):
         """
@@ -50,61 +67,63 @@ class RcsTextField(models.TextField):
         
         """
         data = getattr(instance, self.attname)
-        key = "%s/%s/%s/%s.txt" % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id)
+        key = self.rcskey_format % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id)
         try:
             backend.commit(key, data)
         except:
             raise
 
             
-    def get_revisions(self, instance, raw=False):
-        wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-        revisions = wt.branch.repository.all_revision_ids()
-        revs = []
-        for rev in revisions:
-            revs.append(wt.branch.revision_id_to_revno(rev))
-        if raw:
-            return revisions
-        return revs
+    #def get_revisions(self, instance, raw=False):
+     #   wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+      #  revisions = wt.branch.repository.all_revision_ids()
+       # revs = []
+    #    for rev in revisions:
+     #       revs.append(wt.branch.revision_id_to_revno(rev))
+      #  if raw:
+       #     return revisions
+        #return revs
 
-    def get_changes(self, instance, field):
-        wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-        wt.lock_read()
-        changes = wt.branch.repository.fileids_altered_by_revision_ids(self.get_revisions(instance, True))
-        wt.unlock()
-        myself = self.get_my_fileid(instance, field)
-        for fileid in changes:
-            if fileid == myself:
-                return changes[fileid]
-        return changes
+    #def get_changes(self, instance, field):
+     #   wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+      #  wt.lock_read()
+       # changes = wt.branch.repository.fileids_altered_by_revision_ids(self.get_revisions(instance, True))
+        #wt.unlock()
+        #myself = self.get_my_fileid(instance, field)
+        #for fileid in changes:
+         #   if fileid == myself:
+          #      return changes[fileid]
+        #return changes
 
     def get_changed_revisions(self, instance, field):
-        wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-        changed_in = self.get_changes(instance, field)
-        crevs = []
-        for rev_id in changed_in:
-            try:
-                crevs.append(wt.branch.revision_id_to_revno(rev_id))
-            except:
-                pass
-        crevs.sort(reverse=True)
-        return crevs[1:15] #FIXME:better handle this limit on app-level, not here
+        return backend.get_revisions(self.rcskey_format % (instance._meta.app_label, instance.__class__.__name__,field.attname, instance.id))
+        #wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+        #changed_in = self.get_changes(instance, field)
+        #crevs = []
+        #for rev_id in changed_in:
+        #    try:
+        #        crevs.append(wt.branch.revision_id_to_revno(rev_id))
+        #    except:
+        #        pass
+        #crevs.sort(reverse=True)
+        #return crevs[1:15] #FIXME:better handle this limit on app-level, not here
     
-    def get_my_fileid(self, instance, field):
-        wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-        path = '%s/%s_%s-%s.txt' % (instance._meta.app_label, instance.__class__.__name__,field.attname, instance.id)
-        return wt.path2id(path)
+    #def get_my_fileid(self, instance, field):
+     #   wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+      #  path = '%s/%s/%s/%s.txt' % (instance._meta.app_label, instance.__class__.__name__,field.attname, instance.id)
+       # return wt.path2id(path)
         
     def get_FIELD_revisions(self, instance, field):
-        return self.get_revisions(instance)
+        return backend.get_revisions(self.rcskey_format % (instance._meta.app_label, instance.__class__.__name__,field.attname, instance.id))
+        #return self.get_changed_revisions(instance, field)
 
                
     def contribute_to_class(self, cls, name):
         super(RcsTextField, self).contribute_to_class(cls, name)
-        setattr(cls, 'get_my_fileid', curry(self.get_my_fileid, field=self))
-        setattr(cls, 'get_revisions', curry(self.get_revisions))
+        #setattr(cls, 'get_my_fileid', curry(self.get_my_fileid, field=self))
+        #setattr(cls, 'get_revisions', curry(self.get_revisions))
         setattr(cls, 'get_%s_revisions' % self.name, curry(self.get_FIELD_revisions, field=self))
-        setattr(cls, 'get_changes', curry(self.get_changes, field=self))
+        #setattr(cls, 'get_changes', curry(self.get_changes, field=self))
         setattr(cls, 'get_changed_revisions', curry(self.get_changed_revisions, field=self))
         #cls.add_to_class('objects', RevisionManager())
         dispatcher.connect(self.post_save, signal=signals.post_save, sender=cls)

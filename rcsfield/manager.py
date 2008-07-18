@@ -4,10 +4,8 @@ from django.core.validators import integer_re
 from django.db.models.query import QuerySet
 
 try:
-    #django pre-qsrf
     from django.db.models.query import GET_ITERATOR_CHUNK_SIZE
 except ImportError:
-    #django post-qsrf
     from django.db.models.query import CHUNK_SIZE as GET_ITERATOR_CHUNK_SIZE
 
 from rcsfield.backends import backend

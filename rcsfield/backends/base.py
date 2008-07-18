@@ -54,8 +54,17 @@ class BaseBackend(object):
         raise NotImplementedError    
         
      
-     
+    def get_revisions(self, key):
+        """
+        return a list of all revisions in which ``key`` changed
         
+        """
+        raise NotImplementedError
+        
+        
+        
+        
+         
 
     
     
