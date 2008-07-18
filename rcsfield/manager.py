@@ -8,38 +8,44 @@ try:
 except ImportError:
     from django.db.models.query import CHUNK_SIZE as GET_ITERATOR_CHUNK_SIZE
 
-class BzrQuerySet(QuerySet):
-    '''subclasses QuerySet to fetch older revisions from bzr'''
+
+from rcsfield.backends import backend
+
+
+class RevisionQuerySet(QuerySet):
+    '''subclasses QuerySet to fetch older revisions from rcs backend'''
     def __init__(self, model=None, revision='head', **kwargs):
         self._rev = revision
-        super(BzrQuerySet, self).__init__(model=model, **kwargs)
+        super(RevisionQuerySet, self).__init__(model=model, **kwargs)
         
     def iterator(self):
         '''wraps the original iterator and replaces versioned fields with the 
            apropriate data from the given revision'''
-        for obj in super(BzrQuerySet, self).iterator():
+        for obj in super(RevisionQuerySet, self).iterator():
             for field in obj._meta.fields:
                 if hasattr(field, 'IS_VERSIONED') and field.IS_VERSIONED and hasattr(self, '_rev') and not self._rev == 'head':
-                    from bzrlib import workingtree, revisiontree, tree, workingtree_4, dirstate
-                    from bzrlib.errors import NoSuchRevision
-                    wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-                    try:
-                        rt = wt.branch.repository.revision_tree(wt.branch.get_rev_id(int(self._rev)))
-                    except NoSuchRevision:
+                    #from bzrlib import workingtree, revisiontree, tree, workingtree_4, dirstate
+                    #from bzrlib.errors import NoSuchRevision
+                    #wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+                    #try:
+                    #    rt = wt.branch.repository.revision_tree(wt.branch.get_rev_id(int(self._rev)))
+                    #except NoSuchRevision:
                         #if the revision does not exist, we take the head
                         #FIXME: is this a good choice??
-                        rt = wt
-                    rt.lock_read()
-                    try:
+                    #    rt = wt
+                    #rt.lock_read()
+                    #try:
                         #file_path is relative to the repository-root
-                        file_path = '%s/%s_%s-%s.txt' % (obj._meta.app_label,obj.__class__.__name__,field.attname,obj.id)
-                        olddata = rt.get_file(rt.path2id(file_path)).read()
-                    except:
+                        #file_path = '%s/%s_%s-%s.txt' % (obj._meta.app_label,obj.__class__.__name__,field.attname,obj.id)
+                    #    olddata = rt.get_file(rt.path2id(file_path)).read()
+                    #except:
                         #raise
                         # may raise bzrlib.errors.
-                        olddata = '' #None
-                    finally:
-                        rt.unlock()
+                    #    olddata = '' #None
+                    #finally:
+                    #    rt.unlock()
+                    file_path = '%s/%s_%s-%s.txt' % (obj._meta.app_label,obj.__class__.__name__,field.attname,obj.id)
+                    olddata = backend.fetch(file_path, self._rev)
                     setattr(obj, field.attname, olddata)
             yield obj
 
@@ -81,23 +87,24 @@ class BzrQuerySet(QuerySet):
 
 
 class RevisionManager(models.Manager):
-    '''use this as default manager to get access to old revisions
-        example usage::
+    """
+    use this as default manager to get access to old revisions
+    example usage::
         
-            >>> from example.models import Entry
-            >>> Entry.objects.get(pk=1).text
-            ...
-            >>> Entry.objects.rev(15).get(pk=1).text
-            ...
+        >>> from example.models import Entry
+        >>> Entry.objects.get(pk=1).text
+        ...
+        >>> Entry.objects.rev(15).get(pk=1).text
+        ...
             
-    '''
+    """
     def get_query_set(self, rev='head'):
-        return BzrQuerySet(self.model, revision=rev)
+        return RevisionQuerySet(self.model, revision=rev)
         
     def rev(self, rev='head'):
         if integer_re.search(str(rev)):
             if rev < 0:
-                print "not implemented"
+                raise NotImplementedError
                 #TODO: fetch head minus x if rev is < 0
                 #get head revision and substract rev
                 #c = pysvn.Client()

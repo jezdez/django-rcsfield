@@ -109,6 +109,6 @@ class RcsTextField(models.TextField):
         setattr(cls, 'get_%s_revisions' % self.name, curry(self.get_FIELD_revisions, field=self))
         setattr(cls, 'get_changes', curry(self.get_changes, field=self))
         setattr(cls, 'get_changed_revisions', curry(self.get_changed_revisions, field=self))
-        cls.add_to_class('objects', RevisionManager())
+        #cls.add_to_class('objects', RevisionManager())
         dispatcher.connect(self.post_save, signal=signals.post_save, sender=cls)
 
