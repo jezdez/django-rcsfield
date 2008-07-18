@@ -3,42 +3,35 @@ from django.conf import settings
 from django.db.models import signals, TextField
 from django.dispatch import dispatcher
 from django.utils.functional import curry
-from bzrlib import workingtree, revisiontree, tree, workingtree_4, dirstate
-from bzrlib.errors import NoSuchRevision
+
 from manager import RevisionManager
-import urlparse
 
 from rcsfield.backends import backend
 
 
 class RcsTextField(models.TextField):
-    '''save contents of the TextField in a svn repository.
-    The field has a mandatory argument: the base path, where
-    to save the content as `pk`.txt in the svn repository
+    """
+    save contents of the TextField in a revison control repository.
+    The field has an optionl argument: ``rcskey_format``, the format-
+    string to use for interpolating the key under which the content should
+    be versionized.
     
-    signals post_syncdb:
-        checkout a working copy of svn_path
-        to settings.SVN_WC_PATH
+    signal post_syncdb:
+        do some optional repository initialization
+        
     object added:
-        the object is saved to the db, we only store
-        objects in svn at the first edit, because
-        otherwise its hard to get the id @@FIXME
+        the object is saved to the db, and commited to the repo
     object deleted:
         not implemented yet
     object changed:
-        save changes to working copy, add file
-        to svn and checkin changes
+        save changes to db and commit changes to repo
     
     the cool thing here is, that the ``head`` version is also
-    saved in the db, this makes retrieval really fast. svn is
-    only used on save() and for retrieval of old revisions.
+    saved in the db, this makes retrieval really fast. revison control
+    backend is only used on save() and for retrieval of old revisions.
     
-    TODO: models using this field should use the manager
-    RevisionManager as _default_manager.
-    '''
+    """
     
-    #we need this, to know if we can fetch old revisions.
-    #IS_VERSIONED = True
     
     def __init__(self, *args, **kwargs):
         """
@@ -73,58 +66,25 @@ class RcsTextField(models.TextField):
         except:
             raise
 
-            
-    #def get_revisions(self, instance, raw=False):
-     #   wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-      #  revisions = wt.branch.repository.all_revision_ids()
-       # revs = []
-    #    for rev in revisions:
-     #       revs.append(wt.branch.revision_id_to_revno(rev))
-      #  if raw:
-       #     return revisions
-        #return revs
-
-    #def get_changes(self, instance, field):
-     #   wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-      #  wt.lock_read()
-       # changes = wt.branch.repository.fileids_altered_by_revision_ids(self.get_revisions(instance, True))
-        #wt.unlock()
-        #myself = self.get_my_fileid(instance, field)
-        #for fileid in changes:
-         #   if fileid == myself:
-          #      return changes[fileid]
-        #return changes
 
     def get_changed_revisions(self, instance, field):
+        """
+        FIXME: for now this returns the same as get_FIELD_revisions, later
+        on it should return all revisions where _any_ rcsfield on the model
+        changed. 
+        """
         return backend.get_revisions(self.rcskey_format % (instance._meta.app_label, instance.__class__.__name__,field.attname, instance.id))
-        #wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-        #changed_in = self.get_changes(instance, field)
-        #crevs = []
-        #for rev_id in changed_in:
-        #    try:
-        #        crevs.append(wt.branch.revision_id_to_revno(rev_id))
-        #    except:
-        #        pass
-        #crevs.sort(reverse=True)
-        #return crevs[1:15] #FIXME:better handle this limit on app-level, not here
-    
-    #def get_my_fileid(self, instance, field):
-     #   wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
-      #  path = '%s/%s/%s/%s.txt' % (instance._meta.app_label, instance.__class__.__name__,field.attname, instance.id)
-       # return wt.path2id(path)
+
         
     def get_FIELD_revisions(self, instance, field):
         return backend.get_revisions(self.rcskey_format % (instance._meta.app_label, instance.__class__.__name__,field.attname, instance.id))
-        #return self.get_changed_revisions(instance, field)
 
                
     def contribute_to_class(self, cls, name):
         super(RcsTextField, self).contribute_to_class(cls, name)
-        #setattr(cls, 'get_my_fileid', curry(self.get_my_fileid, field=self))
-        #setattr(cls, 'get_revisions', curry(self.get_revisions))
         setattr(cls, 'get_%s_revisions' % self.name, curry(self.get_FIELD_revisions, field=self))
-        #setattr(cls, 'get_changes', curry(self.get_changes, field=self))
         setattr(cls, 'get_changed_revisions', curry(self.get_changed_revisions, field=self))
-        #cls.add_to_class('objects', RevisionManager())
         dispatcher.connect(self.post_save, signal=signals.post_save, sender=cls)
+
+
 

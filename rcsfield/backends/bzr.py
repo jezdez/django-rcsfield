@@ -4,7 +4,7 @@ Bazaar backend for django-rcsfield.
 Uses bzrlib http://bazaar-vcs.org to versionize content.
 """
 
-import os
+import os, codecs
 from django.conf import settings
 from bzrlib import bzrdir, workingtree, revisiontree, tree, workingtree_4, dirstate
 from bzrlib.errors import NoSuchRevision as BzrNoSuchRevision
@@ -74,7 +74,7 @@ class BzrBackend(BaseBackend):
         commit changed ``data`` to the entity identified by ``key``.
         
         """
-        fobj = open(os.path.join(settings.BZR_WC_PATH, key), 'w')
+        fobj = codecs.open(os.path.join(settings.BZR_WC_PATH, key), 'w', "utf-8")
         fobj.write(data)
         fobj.close()
         wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)

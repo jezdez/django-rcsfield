@@ -33,7 +33,7 @@ class RevisionQuerySet(QuerySet):
                     file_path = '%s/%s/%s/%s.txt' % (obj._meta.app_label,obj.__class__.__name__, field.attname,obj.id)
                     try:
                         olddata = backend.fetch(file_path, self._rev)
-                        setattr(obj, field.attname, olddata)
+                        setattr(obj, field.attname, unicode(olddata))
                     except:
                         # for now just ignore errors raised in the backend 
                         # and return the content from the db (aka head revision)
