@@ -7,6 +7,8 @@ from django.utils.functional import curry
 from manager import RevisionManager
 
 from rcsfield.backends import backend
+from rcsfield.widgets import RcsTextFieldWidget
+
 
 
 class RcsTextField(models.TextField):
@@ -45,7 +47,7 @@ class RcsTextField(models.TextField):
             #TODO: check if the string has the correct format
         else:
             self.rcskey_format = "%s/%s/%s/%s.txt"
-        self.IS_VERSIONED = True # so we can figure out that this field is versionized quickly
+        self.IS_VERSIONED = True # so we can figure out that this field is versionized
         TextField.__init__(self, *args, **kwargs)
     
         
@@ -60,7 +62,9 @@ class RcsTextField(models.TextField):
         
         """
         data = getattr(instance, self.attname)
-        key = self.rcskey_format % (instance._meta.app_label,instance.__class__.__name__,self.attname,instance.id)
+        key = self.rcskey_format % (instance._meta.app_label,
+                                    instance.__class__.__name__,
+                                    self.attname,instance.id)
         try:
             backend.commit(key, data)
         except:
@@ -72,12 +76,19 @@ class RcsTextField(models.TextField):
         FIXME: for now this returns the same as get_FIELD_revisions, later
         on it should return all revisions where _any_ rcsfield on the model
         changed. 
+        
         """
-        return backend.get_revisions(self.rcskey_format % (instance._meta.app_label, instance.__class__.__name__,field.attname, instance.id))
+        return backend.get_revisions(self.rcskey_format % (instance._meta.app_label, 
+                                                           instance.__class__.__name__,
+                                                           field.attname, 
+                                                           instance.id))
 
         
     def get_FIELD_revisions(self, instance, field):
-        return backend.get_revisions(self.rcskey_format % (instance._meta.app_label, instance.__class__.__name__,field.attname, instance.id))
+        return backend.get_revisions(self.rcskey_format % (instance._meta.app_label,
+                                                           instance.__class__.__name__,
+                                                           field.attname, 
+                                                           instance.id))
 
                
     def contribute_to_class(self, cls, name):
@@ -85,6 +96,12 @@ class RcsTextField(models.TextField):
         setattr(cls, 'get_%s_revisions' % self.name, curry(self.get_FIELD_revisions, field=self))
         setattr(cls, 'get_changed_revisions', curry(self.get_changed_revisions, field=self))
         dispatcher.connect(self.post_save, signal=signals.post_save, sender=cls)
+    
+        
+    def formfield(self, **kwargs):
+        defaults = {'widget': RcsTextFieldWidget}
+        defaults.update(**kwargs)
+        return super(RcsTextField, self).formfield(**defaults)
 
 
 
