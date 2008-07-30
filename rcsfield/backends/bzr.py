@@ -74,7 +74,12 @@ class BzrBackend(BaseBackend):
         commit changed ``data`` to the entity identified by ``key``.
         
         """
-        fobj = codecs.open(os.path.join(settings.BZR_WC_PATH, key), 'w', "utf-8")
+        try:
+            fobj = codecs.open(os.path.join(settings.BZR_WC_PATH, key), 'w', "utf-8")
+        except IOError:
+            #parent directory seems to be missing
+            self.initial(os.path.dirname(os.path.join(settings.BZR_WC_PATH, key)))
+            return self.commit(key, data)
         fobj.write(data)
         fobj.close()
         wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
