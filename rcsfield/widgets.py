@@ -14,5 +14,5 @@ class RcsTextFieldWidget(forms.Textarea):
         output = []
         output.append(super(RcsTextFieldWidget, self).render(name, value, attrs))
         if value is not None:
-            output.append('<div style="margin-left:108px">Older Revisions may be available.</div>')
+            output.append('<div style="margin-left:108px">Older Revisions <em>may</em> be available.</div>')
         return mark_safe(u"\n".join(output))

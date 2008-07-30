@@ -98,10 +98,10 @@ class RcsTextField(models.TextField):
         dispatcher.connect(self.post_save, signal=signals.post_save, sender=cls)
     
         
-    def formfield(self, **kwargs):
-        defaults = {'widget': RcsTextFieldWidget}
-        defaults.update(**kwargs)
-        return super(RcsTextField, self).formfield(**defaults)
+    #def formfield(self, **kwargs):
+    #    defaults = {'widget': RcsTextFieldWidget}
+    #    defaults.update(**kwargs)
+    #    return super(RcsTextField, self).formfield(**defaults)
 
 
 
