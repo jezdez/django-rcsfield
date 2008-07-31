@@ -46,7 +46,7 @@ class SvnBackend(BaseBackend):
         c = pysvn.Client()
         svnrev = pysvn.Revision(pysvn.opt_revision_kind.number, int(rev))
         olddata = c.cat(os.path.join(settings.SVN_WC_PATH, key), revision = svnrev)
-        return olddata
+        return unicode(olddata, 'utf-8')
         
     
     def commit(self, key, data):

@@ -66,7 +66,7 @@ class BzrBackend(BaseBackend):
         finally:
             # needed to leave the tree in a usable state.
             rt.unlock()
-        return olddata
+        return unicode(olddata, 'utf-8')
         
     
     def commit(self, key, data):
