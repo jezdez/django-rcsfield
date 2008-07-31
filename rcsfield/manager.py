@@ -30,7 +30,7 @@ class RevisionQuerySet(QuerySet):
         for obj in super(RevisionQuerySet, self).iterator():
             for field in obj._meta.fields:
                 if hasattr(field, 'IS_VERSIONED') and field.IS_VERSIONED and hasattr(self, '_rev') and not self._rev == 'head':
-                    file_path = '%s/%s/%s/%s.txt' % (obj._meta.app_label,obj.__class__.__name__, field.attname,obj.id)
+                    file_path = getattr(field, 'rcskey_format') % (obj._meta.app_label,obj.__class__.__name__, field.attname,obj.id)
                     try:
                         olddata = backend.fetch(file_path, self._rev)
                         setattr(obj, field.attname, olddata)
