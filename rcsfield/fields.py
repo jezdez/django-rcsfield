@@ -90,11 +90,63 @@ class RcsTextField(models.TextField):
                                                            field.attname, 
                                                            instance.id))
 
+
+    def get_FIELD_diff(self, instance, rev1, rev2=None, field=None):
+        """
+        Returns a generator which yields lines of a textual diff between
+        two revisions.
+        Supports two operation modes:
+        
+           ObjectA.get_field_diff(3): returns a diff between the contents of
+           the field ``field`` at revision 3 against revision of ObjectA.
+           Direction is ---3 / +++ObjectA
+           
+           ObjectA.get_field_diff(3,7): returns a diff between the contents of
+           the field ``field`` at revision 7 against revision 3..
+           Direction is ---3/+++7
+           
+        """
+        
+            
+        if rev2 is None:
+            rev2 = getattr(instance, '%s_revision' % field.attname, 'head')
+        
+        if rev1 == rev2: #do not attempt to diff identical content for performance reasons
+            return ""
+                            
+        if rev2 == 'head':
+            import difflib
+            old = backend.fetch(self.rcskey_format % (instance._meta.app_label,
+                                                      instance.__class__.__name__,
+                                                      field.attname,
+                                                      instance.id),
+                                rev1,
+                               )
+            diff = difflib.unified_diff(old.splitlines(1),
+                                       getattr(instance, field.attname).splitlines(1),
+                                       'Revision: %s' % rev1, 
+                                       'Revision: %s' % getattr(instance, "%s_revision" % field.attname, 'head'),
+                                       )
+            return diff
+        
+        else: #diff two arbitrary revisions
+            return backend.diff(self.rcskey_format % (instance._meta.app_label,
+                                                      instance.__class__.__name__,
+                                                      field.attname,
+                                                      instance.id),
+                                rev1,
+                                self.rcskey_format % (instance._meta.app_label,
+                                                      instance.__class__.__name__,
+                                                      field.attname,
+                                                      instance.id),
+                                rev2,
+                               )
                
     def contribute_to_class(self, cls, name):
         super(RcsTextField, self).contribute_to_class(cls, name)
         setattr(cls, 'get_%s_revisions' % self.name, curry(self.get_FIELD_revisions, field=self))
         setattr(cls, 'get_changed_revisions', curry(self.get_changed_revisions, field=self))
+        setattr(cls, 'get_%s_diff' % self.name, curry(self.get_FIELD_diff, field=self))
         dispatcher.connect(self.post_save, signal=signals.post_save, sender=cls)
     
         

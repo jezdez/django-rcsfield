@@ -34,6 +34,7 @@ class RevisionQuerySet(QuerySet):
                     try:
                         olddata = backend.fetch(file_path, self._rev)
                         setattr(obj, field.attname, olddata)
+                        setattr(obj, '%s_revision' % field.attname, self._rev)
                     except:
                         # for now just ignore errors raised in the backend 
                         # and return the content from the db (aka head revision)
