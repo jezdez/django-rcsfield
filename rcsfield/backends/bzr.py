@@ -19,23 +19,26 @@ class BzrBackend(BaseBackend):
     
     """
     
+    def __init__(self, wc_path):
+        self.wc_path = os.path.normpath(wc_path)
+        
+        
     def initial(self, prefix):
         """
         Set up the brz repo at ``settings.BZR_WC_PATH``.
         And add initial directory to the repo.
         
         """
-        checkout_path = os.path.normpath(settings.BZR_WC_PATH)
-        if not os.path.exists(checkout_path):
-            os.makedirs(checkout_path)
+        if not os.path.exists(self.wc_path):
+            os.makedirs(self.wc_path)
         
         try:
-            wt = bzrdir.BzrDir.create_standalone_workingtree(checkout_path)
+            wt = bzrdir.BzrDir.create_standalone_workingtree(self.wc_path)
         except FileExists:
             # already under version control
-            wt = workingtree.WorkingTree.open(checkout_path)
+            wt = workingtree.WorkingTree.open(self.wc_path)
 
-        field_path = os.path.normpath(os.path.join(checkout_path, prefix))
+        field_path = os.path.normpath(os.path.join(self.wc_path, prefix))
         if not os.path.exists(field_path):
             os.makedirs(field_path)
             wt.smart_add(['%s' % field_path,])
@@ -47,7 +50,7 @@ class BzrBackend(BaseBackend):
         fetch revision ``rev`` of entity identified by ``key``.
          
         """
-        wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+        wt = workingtree.WorkingTree.open(self.wc_path)
         try:
             rt = wt.branch.repository.revision_tree(wt.branch.get_rev_id(int(rev)))
         except BzrNoSuchRevision:
@@ -75,14 +78,14 @@ class BzrBackend(BaseBackend):
         
         """
         try:
-            fobj = codecs.open(os.path.join(settings.BZR_WC_PATH, key), 'w', "utf-8")
+            fobj = codecs.open(os.path.join(self.wc_path, key), 'w', "utf-8")
         except IOError:
             #parent directory seems to be missing
-            self.initial(os.path.dirname(os.path.join(settings.BZR_WC_PATH, key)))
+            self.initial(os.path.dirname(os.path.join(self.wc_path, key)))
             return self.commit(key, data)
         fobj.write(data)
         fobj.close()
-        wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+        wt = workingtree.WorkingTree.open(self.wc_path)
         try:
             wt.add([key,])
         except:
@@ -96,7 +99,7 @@ class BzrBackend(BaseBackend):
         Revision Numbers are integers starting at 1.
         
         """
-        wt = workingtree.WorkingTree.open(settings.BZR_WC_PATH)
+        wt = workingtree.WorkingTree.open(self.wc_path)
         file_id = wt.path2id(key)
         revisions = wt.branch.repository.all_revision_ids() # bzr ids
 
@@ -123,15 +126,33 @@ class BzrBackend(BaseBackend):
         return crevs[1:] #cut of the HEAD revision-number
 
 
+    def move(self, key_from, key_to):
+        """
+        Moves an entity from ``key_from`` to ``key_to`` while keeping
+        the history. This is useful to migrate a repository after the 
+        ``rcskey_format`` of a ``RcsTextField`` was changed.
+        
+        """
+        wt = workingtree.WorkingTree.open(self.wc_path)
+        try:
+            wt.rename_one(key_from, key_to)
+            wt.commit(message="Moved %s to %s" % (key_from, key_to))
+            return True
+        except:
+            return False
+            
+        
+
     
     
-rcs = BzrBackend()
+rcs = BzrBackend(settings.BZR_WC_PATH)
 
 fetch = rcs.fetch
 commit = rcs.commit
 initial = rcs.initial
 get_revisions = rcs.get_revisions
+move = rcs.move
 
-__all__ = ('fetch', 'commit', 'initial', 'get_revisions')
+__all__ = ('fetch', 'commit', 'initial', 'get_revisions', 'move')
 
 

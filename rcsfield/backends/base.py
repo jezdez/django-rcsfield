@@ -16,6 +16,12 @@ Three functions are exported:
   * initial(): does optional setup needed for the backend to work. called on
     ``post_syncdb`` signal.
     
+  * get_revisions(key): returns a list of revisions in which the entity
+    identifed by ``key`` was changed.
+    
+  * move(key_from, key_to): knows how to move an entity from ``key_from``
+    to ``key_to`` while keeping the history. this method is optional.
+    
     
 """
 
@@ -62,7 +68,14 @@ class BaseBackend(object):
         raise NotImplementedError
         
         
-        
+    def move(self, key_from, key_to):
+        """
+        Moves an entity from ``key_from`` to ``key_to`` while keeping
+        the history. This is useful to migrate a repository after the 
+        ``rcskey_format`` of a ``RcsTextField`` was changed.
+
+        """
+        raise NotImplementedError    
         
          
 
