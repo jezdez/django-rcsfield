@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 from django.db.models import signals, TextField
-from django.dispatch import dispatcher
 from django.utils.functional import curry
 
 from manager import RevisionManager
@@ -55,7 +54,7 @@ class RcsTextField(models.TextField):
         return "TextField"
 
 
-    def post_save(self, instance=None):
+    def post_save(self, instance=None, **kwargs):
         """
         create a file and add to the repository, if not already existing
         called via post_save signal
@@ -147,7 +146,7 @@ class RcsTextField(models.TextField):
         setattr(cls, 'get_%s_revisions' % self.name, curry(self.get_FIELD_revisions, field=self))
         setattr(cls, 'get_changed_revisions', curry(self.get_changed_revisions, field=self))
         setattr(cls, 'get_%s_diff' % self.name, curry(self.get_FIELD_diff, field=self))
-        dispatcher.connect(self.post_save, signal=signals.post_save, sender=cls)
+        signals.post_save.connect(self.post_save, sender=cls)
     
         
     #def formfield(self, **kwargs):

@@ -5,13 +5,12 @@ into django's syncdb process
 
 import os 
 from django.conf import settings
-from django.dispatch import dispatcher
 from django.db.models import get_models, signals
 from fields import RcsTextField
 
 
 
-def initial_checkout(sender, created_models, verbosity):
+def initial_checkout(sender, created_models, verbosity, **kwargs):
     """
     creates the repository / does the initial checkout
     for all fields that are versionized. 
@@ -30,4 +29,4 @@ def initial_checkout(sender, created_models, verbosity):
                         print "Will run init procedure for %s backend" % backend.__name__
                     backend.initial("%s/%s/%s" % (app_label, model.__name__, field.name))
 
-dispatcher.connect(initial_checkout, signal=signals.post_syncdb)
+signals.post_syncdb.connect(initial_checkout)
