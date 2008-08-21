@@ -46,7 +46,7 @@ class SvnBackend(BaseBackend):
         c = pysvn.Client()
         svnrev = pysvn.Revision(pysvn.opt_revision_kind.number, int(rev))
         olddata = c.cat(os.path.join(settings.SVN_WC_PATH, key), revision = svnrev)
-        return unicode(olddata, 'utf-8')
+        return olddata
         
     
     def commit(self, key, data):
@@ -55,7 +55,7 @@ class SvnBackend(BaseBackend):
         
         """
         try:
-            fobj = codecs.open(os.path.join(settings.SVN_WC_PATH, key), 'w', 'utf-8')
+            fobj = open(os.path.join(settings.SVN_WC_PATH, key), 'w')
         except IOError:
             #parent directory seems to be missing
             self.initial(os.path.dirname(os.path.join(settings.SVN_WC_PATH, key)))

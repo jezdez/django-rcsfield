@@ -33,7 +33,7 @@ class RevisionQuerySet(QuerySet):
                     file_path = getattr(field, 'rcskey_format') % (obj._meta.app_label,obj.__class__.__name__, field.attname,obj.id)
                     try:
                         olddata = backend.fetch(file_path, self._rev)
-                        setattr(obj, field.attname, olddata)
+                        setattr(obj, field.attname, unicode(olddata, 'utf-8'))
                         setattr(obj, '%s_revision' % field.attname, self._rev)
                     except:
                         # for now just ignore errors raised in the backend 

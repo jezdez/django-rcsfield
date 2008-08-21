@@ -65,7 +65,7 @@ class RcsTextField(models.TextField):
                                     instance.__class__.__name__,
                                     self.attname,instance.id)
         try:
-            backend.commit(key, data)
+            backend.commit(key, data.encode('utf-8'))
         except:
             raise
 

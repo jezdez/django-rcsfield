@@ -59,17 +59,18 @@ class BzrBackend(BaseBackend):
             rt = wt
         rt.lock_read()
         try:
-            # key is the file-path relative to the repository-root
-            file_path = key 
-            olddata = rt.get_file(rt.path2id(file_path)).read()
-        except:
-            #raise
-            #FIXME: may raise bzrlib.errors, for now just ignore them
-            olddata = ''
+            try:
+                # key is the file-path relative to the repository-root
+                file_path = key 
+                olddata = rt.get_file(rt.path2id(file_path)).read()
+            except:
+                #raise
+                #FIXME: may raise bzrlib.errors, for now just ignore them
+                olddata = ''
         finally:
             # needed to leave the tree in a usable state.
             rt.unlock()
-        return unicode(olddata, 'utf-8')
+        return olddata
         
     
     def commit(self, key, data):
@@ -77,8 +78,9 @@ class BzrBackend(BaseBackend):
         commit changed ``data`` to the entity identified by ``key``.
         
         """
+        
         try:
-            fobj = codecs.open(os.path.join(self.wc_path, key), 'w', "utf-8")
+            fobj = open(os.path.join(self.wc_path, key), 'w')
         except IOError:
             #parent directory seems to be missing
             self.initial(os.path.dirname(os.path.join(self.wc_path, key)))
@@ -105,12 +107,14 @@ class BzrBackend(BaseBackend):
 
         wt.lock_read()
         try:
-            changes = wt.branch.repository.fileids_altered_by_revision_ids(revisions)
-        except:
-            changes = {}
+            try:
+                changes = wt.branch.repository.fileids_altered_by_revision_ids(revisions)
+            except Exception, e:
+                raise e
+                changes = {}
         finally:
             wt.unlock()
-        
+
         if changes.has_key(file_id):
             changed_in = changes[file_id]
         else:
