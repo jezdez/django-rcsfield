@@ -1,6 +1,5 @@
 from django.db import models, backend, connection, transaction
 from django.conf import settings
-from django.core.validators import integer_re
 from django.db.models.query import QuerySet
 
 try:
@@ -76,10 +75,5 @@ class RevisionManager(models.Manager):
     def get_query_set(self, rev='head'):
         return RevisionQuerySet(self.model, revision=rev)
         
-    def rev(self, rev='head'):
-        if integer_re.search(str(rev)): #FIXME
-            if rev < 0:
-                raise NotImplementedError
-                #TODO: fetch head minus x if rev is < 0
-                
+    def rev(self, rev='head'):    
         return self.get_query_set(rev)
