@@ -5,6 +5,7 @@ Uses bzrlib http://bazaar-vcs.org to versionize content.
 """
 
 import os, codecs
+import difflib
 from django.conf import settings
 from bzrlib import bzrdir, workingtree, revisiontree, tree, workingtree_4, dirstate
 from bzrlib.errors import NoSuchRevision as BzrNoSuchRevision
@@ -152,7 +153,6 @@ class BzrBackend(BaseBackend):
         Takes two parameters for keyname to support diffing renamed files.
         
         """
-        import difflib
         c1 = self.fetch(key1, rev1)
         c2 = self.fetch(key2, rev2)
         diff = difflib.unified_diff(c1.splitlines(1),
