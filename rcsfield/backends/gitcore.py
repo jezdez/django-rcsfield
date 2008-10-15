@@ -69,7 +69,7 @@ class GitBackend(BaseBackend):
         fobj.close()
         repo = Repo(self.repo_path)
         try:
-            repo.git.add(key)
+            repo.git.add(os.path.join(self.repo_path, key))
         except:
             raise
         repo.git.commit(message='auto commit from django')
