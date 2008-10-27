@@ -2,11 +2,12 @@ from django.db import models
 from django.conf import settings
 from django.db.models import signals, TextField
 from django.utils.functional import curry
+from django.utils import simplejson as json
 
 from manager import RevisionManager
 
 from rcsfield.backends import backend
-from rcsfield.widgets import RcsTextFieldWidget
+from rcsfield.widgets import RcsTextFieldWidget, JsonWidget
 
 
 
@@ -156,3 +157,45 @@ class RcsTextField(models.TextField):
 
 
 
+class RcsJsonField(RcsTextField):
+    """
+    Save arbitrary data structures serialized as json and versionize them.
+    
+    """
+    __metaclass__ = models.SubfieldBase
+    
+    def to_python(self, value):
+        if value == "":
+            return None
+        if isinstance(value, basestring):
+            return json.loads(value)
+        return value
+        
+        
+    def get_db_prep_save(self, value):
+        if value is not None:
+            if not isinstance(value, basestring):
+                value = json.dumps(value)
+        return models.TextField.get_db_prep_save(self, value)
+        
+        
+    def formfield(self, **kwargs):
+           defaults = {}
+           defaults.update(kwargs)
+           defaults.update({'widget': JsonWidget}) # needs to be here and not in the form-field because otherwise contrib.admin will override our widget
+           return super(RcsJsonField, self).formfield(**defaults)
+
+    def post_save(self, instance=None, **kwargs):
+       """
+       create a file and add to the repository, if not already existing
+       called via post_save signal
+
+       """
+       data = getattr(instance, self.attname)
+       key = self.rcskey_format % (instance._meta.app_label,
+                                   instance.__class__.__name__,
+                                   self.attname,instance.id)
+       try:
+           backend.commit(key, json.dumps(data)) #.decode().encode('utf-8'))
+       except:
+           raise
