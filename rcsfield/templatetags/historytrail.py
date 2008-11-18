@@ -1,14 +1,15 @@
 from django import template
 from django.db import models
 from django.db.models import get_model
+from django.template.loader import render_to_string
 
 register = template.Library()
 
 class HistoryTrailNode(template.Node):
     """
     Prints a Version History Trail for the given Model.
-    The HTML is currently harcoded (see below), which
-    should be changed in a later version.
+    The HTML produced can be edited in the template
+    `rcsfield/includes/historytrail.html`
     
     Usage:
         {% historytrail object %}
@@ -24,15 +25,13 @@ class HistoryTrailNode(template.Node):
     def render(self, context):
         self.instance = template.resolve_variable(self.model, context)
         revs = self.instance.get_changed_revisions()
-        out = ""
         if self.count > 0:
             revs = revs[:self.count]
-        for c, rev in enumerate(revs):
-            if c > 0:
-                out += '<a rel="nofollow" href="%sdiff/%s/%s/">&larr;</a> <a rel="nofollow" href="%srev/%s/">[%s]</a> ' %(self.instance.get_absolute_url(),rev,revs[c-1],self.instance.get_absolute_url(),rev,rev)
-            else:
-                out += '<a rel="nofollow" href="%s">head</a> <a rel="nofollow" href="%sdiff/%s/head/">&larr;</a> <a rel="nofollow" href="%srev/%s/">[%s]</a> ' % (self.instance.get_absolute_url(), self.instance.get_absolute_url(), rev, self.instance.get_absolute_url(), rev, rev)
-        return out
+        # Note: as long as there is no support for {{ forloop.previous }} 
+        # we need a list of tuples with (current,previous) revisions    
+        tlist = [(revs[c],revs[c-1]) for c in range(len(revs))]
+        return render_to_string('rcsfield/includes/historytrail.html', {'object': self.instance, 'revs': tlist})
+
         
 def historytrail(parser, token):
     bits = token.contents.split()

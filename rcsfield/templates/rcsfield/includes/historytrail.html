@@ -1,0 +1,7 @@
+{% for rev,prev in revs %}
+	{% if forloop.first %}
+		<a rel="nofollow" href="{{ object.get_absolute_url }}">head</a> <a rel="nofollow" href="{{ object.get_absolute_url }}diff/{{ rev }}/head/">&larr;</a> <a rel="nofollow" href="{{ object.get_absolute_url }}rev/{{ rev }}/">[{{ rev }}]</a>
+	{% else %}   
+		<a rel="nofollow" href="{{ object.get_absolute_url }}diff/{{ rev }}/{{ prev }}/">&larr;</a> <a rel="nofollow" href="{{ object.get_absolute_url }}rev/{{ rev }}/">[{{ rev }}]</a>
+	{% endif %} 
+{% endfor %}  
