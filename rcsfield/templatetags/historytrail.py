@@ -23,14 +23,14 @@ class HistoryTrailNode(template.Node):
         self.count = int(count)
         
     def render(self, context):
-        self.instance = template.resolve_variable(self.model, context)
-        revs = self.instance.get_changed_revisions()
+        instance = template.resolve_variable(self.model, context)
+        revs = instance.get_changed_revisions()
         if self.count > 0:
             revs = revs[:self.count]
         # Note: as long as there is no support for {{ forloop.previous }} 
         # we need a list of tuples with (current,previous) revisions    
         tlist = [(revs[c],revs[c-1]) for c in range(len(revs))]
-        return render_to_string('rcsfield/includes/historytrail.html', {'object': self.instance, 'revs': tlist})
+        return render_to_string('rcsfield/includes/historytrail.html', {'object': instance, 'revs': tlist})
 
         
 def historytrail(parser, token):
