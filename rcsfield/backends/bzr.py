@@ -5,7 +5,6 @@ Uses bzrlib http://bazaar-vcs.org to versionize content.
 """
 
 import os, codecs
-import difflib
 from django.conf import settings
 from bzrlib import bzrdir, workingtree, revisiontree, tree, workingtree_4, dirstate
 from bzrlib.errors import NoSuchRevision as BzrNoSuchRevision
@@ -145,22 +144,6 @@ class BzrBackend(BaseBackend):
             return True
         except:
             return False
-    
-            
-    def diff(self, key1, rev1, key2, rev2):
-        """
-        Returns a textual unified diff of two entities at specified revisions.
-        Takes two parameters for keyname to support diffing renamed files.
-        
-        """
-        c1 = self.fetch(key1, rev1)
-        c2 = self.fetch(key2, rev2)
-        diff = difflib.unified_diff(c1.splitlines(1),
-                                    c2.splitlines(1),
-                                    'Revision: %s' % rev1, 
-                                    'Revision: %s' % rev2
-                                    )
-        return diff
         
 
     

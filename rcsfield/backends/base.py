@@ -22,8 +22,13 @@ Three functions are exported:
   * move(key_from, key_to): knows how to move an entity from ``key_from``
     to ``key_to`` while keeping the history. this method is optional.
     
+  * diff(key1, rev1, key2, rev2): returns a unified diff of the contents
+    of ``key1``@``rev1`` against ``key2``@``rev2``. 
     
 """
+
+import difflib
+
 
 class NoSuchRevision(Exception):
     pass
@@ -75,7 +80,23 @@ class BaseBackend(object):
         ``rcskey_format`` of a ``RcsTextField`` was changed.
 
         """
-        raise NotImplementedError    
+        raise NotImplementedError
+    
+        
+    def diff(self, key1, rev1, key2, rev2):
+        """
+        Returns a textual unified diff of two entities at specified revisions.
+        Takes two parameters for keyname to support diffing renamed files.
+
+        """
+        c1 = self.fetch(key1, rev1)
+        c2 = self.fetch(key2, rev2)
+        diff = difflib.unified_diff(c1.splitlines(1),
+                                    c2.splitlines(1),
+                                    'Revision: %s' % rev1, 
+                                    'Revision: %s' % rev2
+                                    )
+        return diff    
         
          
 

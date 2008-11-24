@@ -101,21 +101,7 @@ class GitBackend(BaseBackend):
         except:
             return False
             
-    def diff(self, key1, rev1, key2, rev2):
-        """
-        Returns a textual unified diff of two entities at specified revisions.
-        Takes two parameters for keyname to support diffing renamed files.
-        
-        """
-        import difflib
-        c1 = self.fetch(key1, rev1)
-        c2 = self.fetch(key2, rev2)
-        diff = difflib.unified_diff(c1.splitlines(1),
-                                    c2.splitlines(1),
-                                    'Revision: %s' % rev1, 
-                                    'Revision: %s' % rev2
-                                    )
-        return diff
+
 
 rcs = GitBackend(settings.GIT_REPO_PATH)
 

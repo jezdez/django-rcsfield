@@ -22,6 +22,7 @@ fetch = complain
 commit = complain
 initial = complain
 get_revisions = complain
+diff = complain
 
-__all__ = ('fetch', 'commit', 'initial', 'get_revisions')        
+__all__ = ('fetch', 'commit', 'initial', 'get_revisions', 'diff')        
     
