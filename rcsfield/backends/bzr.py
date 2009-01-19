@@ -83,7 +83,7 @@ class BzrBackend(BaseBackend):
             fobj = open(os.path.join(self.wc_path, key), 'w')
         except IOError:
             #parent directory seems to be missing
-            self.initial(os.path.dirname(os.path.join(self.wc_path, key)))
+            self.initial(os.path.dirname(key))
             return self.commit(key, data)
         fobj.write(data)
         fobj.close()
