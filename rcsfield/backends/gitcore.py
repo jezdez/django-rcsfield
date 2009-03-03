@@ -49,7 +49,10 @@ class GitBackend(BaseBackend):
         """
         repo = Repo(self.repo_path)
         try:
-            return repo.tree/key.data
+            tree = repo.tree(rev)
+            for bit in key.split('/'):
+                tree = tree/bit
+            return tree.data
         except:
             return ''
     
