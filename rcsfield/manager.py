@@ -13,18 +13,18 @@ from rcsfield.backends import backend
 class RevisionQuerySet(QuerySet):
     """
     subclasses QuerySet to fetch older revisions from rcs backend
-    
+
     """
     def __init__(self, model=None, revision='head', **kwargs):
         self._rev = revision
         super(RevisionQuerySet, self).__init__(model=model, **kwargs)
-    
-        
+
+
     def iterator(self):
         """
-        wraps the original iterator and replaces versioned fields with the 
+        wraps the original iterator and replaces versioned fields with the
         apropriate data from the given revision
-        
+
         """
         for obj in super(RevisionQuerySet, self).iterator():
             for field in obj._meta.fields:
@@ -35,19 +35,19 @@ class RevisionQuerySet(QuerySet):
                         setattr(obj, field.attname, unicode(olddata, 'utf-8'))
                         setattr(obj, '%s_revision' % field.attname, self._rev)
                     except:
-                        # for now just ignore errors raised in the backend 
+                        # for now just ignore errors raised in the backend
                         # and return the content from the db (aka head revision)
                         pass
             yield obj
-    
-    
+
+
     def _clone(self, klass=None, setup=False, **kwargs):
         """
         It's evil that we overwrite _clone here, I will evaluate if there
         are better options.
         _clone is overwritten to append the current revision to the cloned
         queryset object.
-        
+
         """
         if klass is None:
             klass = self.__class__
@@ -64,16 +64,16 @@ class RevisionManager(models.Manager):
     """
     use this as default manager to get access to old revisions
     example usage::
-        
+
         >>> from example.models import Entry
         >>> Entry.objects.get(pk=1).text
         ...
         >>> Entry.objects.rev(15).get(pk=1).text
         ...
-            
+
     """
     def get_query_set(self, rev='head'):
         return RevisionQuerySet(self.model, revision=rev)
-        
-    def rev(self, rev='head'):    
+
+    def rev(self, rev='head'):
         return self.get_query_set(rev)

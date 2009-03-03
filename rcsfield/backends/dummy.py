@@ -15,7 +15,7 @@ def complain(*args, **kwargs):
 
 def ignore(*args, **kwargs):
     pass
-    
+
 
 
 fetch = complain
@@ -24,5 +24,4 @@ initial = complain
 get_revisions = complain
 diff = complain
 
-__all__ = ('fetch', 'commit', 'initial', 'get_revisions', 'diff')        
-    
+__all__ = ('fetch', 'commit', 'initial', 'get_revisions', 'diff')

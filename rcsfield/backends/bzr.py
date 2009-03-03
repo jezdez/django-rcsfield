@@ -16,22 +16,22 @@ from rcsfield.backends.base import BaseBackend
 class BzrBackend(BaseBackend):
     """
     Rcsfield backend which uses bzrlib to versionize content.
-    
+
     """
-    
+
     def __init__(self, wc_path):
         self.wc_path = os.path.normpath(wc_path)
-        
-        
+
+
     def initial(self, prefix):
         """
         Set up the brz repo at ``settings.BZR_WC_PATH``.
         And add initial directory to the repo.
-        
+
         """
         if not os.path.exists(self.wc_path):
             os.makedirs(self.wc_path)
-        
+
         try:
             wt = bzrdir.BzrDir.create_standalone_workingtree(self.wc_path)
         except FileExists:
@@ -43,12 +43,12 @@ class BzrBackend(BaseBackend):
             os.makedirs(field_path)
             wt.smart_add(['%s' % field_path,])
             wt.commit(message="adding initial directory for %s" % prefix)
-        
-        
+
+
     def fetch(self, key, rev):
         """
         fetch revision ``rev`` of entity identified by ``key``.
-         
+
         """
         wt = workingtree.WorkingTree.open(self.wc_path)
         try:
@@ -61,7 +61,7 @@ class BzrBackend(BaseBackend):
         try:
             try:
                 # key is the file-path relative to the repository-root
-                file_path = key 
+                file_path = key
                 olddata = rt.get_file(rt.path2id(file_path)).read()
             except:
                 #raise
@@ -71,14 +71,14 @@ class BzrBackend(BaseBackend):
             # needed to leave the tree in a usable state.
             rt.unlock()
         return olddata
-        
-    
+
+
     def commit(self, key, data):
         """
         commit changed ``data`` to the entity identified by ``key``.
-        
+
         """
-        
+
         try:
             fobj = open(os.path.join(self.wc_path, key), 'w')
         except IOError:
@@ -93,13 +93,13 @@ class BzrBackend(BaseBackend):
         except:
             raise
         wt.commit(message='auto commit from django')
-        
-        
+
+
     def get_revisions(self, key):
         """
         returns a list with all revisions at which ``key`` was changed.
         Revision Numbers are integers starting at 1.
-        
+
         """
         wt = workingtree.WorkingTree.open(self.wc_path)
         file_id = wt.path2id(key)
@@ -119,7 +119,7 @@ class BzrBackend(BaseBackend):
             changed_in = changes[file_id]
         else:
             changed_in = ()
-                
+
         crevs = [] #`key` changed in these revisions
         for rev_id in changed_in:
             try:
@@ -133,9 +133,9 @@ class BzrBackend(BaseBackend):
     def move(self, key_from, key_to):
         """
         Moves an entity from ``key_from`` to ``key_to`` while keeping
-        the history. This is useful to migrate a repository after the 
+        the history. This is useful to migrate a repository after the
         ``rcskey_format`` of a ``RcsTextField`` was changed.
-        
+
         """
         wt = workingtree.WorkingTree.open(self.wc_path)
         try:
@@ -144,10 +144,10 @@ class BzrBackend(BaseBackend):
             return True
         except:
             return False
-        
 
-    
-    
+
+
+
 rcs = BzrBackend(settings.BZR_WC_PATH)
 
 fetch = rcs.fetch
@@ -158,5 +158,3 @@ move = rcs.move
 diff = rcs.diff
 
 __all__ = ('fetch', 'commit', 'initial', 'get_revisions', 'move', 'diff')
-
-
