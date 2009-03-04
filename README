@@ -2,7 +2,7 @@ Revision management for Django TextFields
 =========================================
 
 This app provides a model field for Django called ``RcsTextField`` --
-named after `Revision Constrol System`.
+named after `Revision Control System`.
 
 Currently this app implements Subversion, Git and Bazaar backends for 
 versionizing the content of the field. Other backends are planned.
