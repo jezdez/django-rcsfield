@@ -81,12 +81,11 @@ class GitBackend(BaseBackend):
     def get_revisions(self, key):
         """
         returns a list with all revisions at which ``key`` was changed.
-        Revision Numbers are integers starting at 1.
+        Revisions are Git hashes.
 
         """
         repo = Repo(self.repo_path)
         crevs = [r.id for r in repo.log(path=key)]
-        crevs.sort(reverse=True)
         return crevs[1:] # cut of the head revision-number
 
     def move(self, key_from, key_to):
