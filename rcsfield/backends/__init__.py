@@ -14,8 +14,7 @@ try:
 except ImportError, e:
     # If the above import failed try to load an external backend
     try:
-        _import_path = ''
-        backend = __import__('%s%s' % (_import_path, RCS_BACKEND), {}, {}, [''])
+        backend = __import__(RCS_BACKEND, {}, {}, [''])
     except ImportError, e_user:
         # No backend found, display an error message and a list of all
         # bundled backends.
