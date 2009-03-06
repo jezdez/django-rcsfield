@@ -18,8 +18,8 @@ class GitBackend(BaseBackend):
 
     """
 
-    def __init__(self, repo_path):
-        self.repo_path = os.path.normpath(repo_path)
+    def __init__(self, location):
+        self.location = os.path.normpath(location)
 
 
     def initial(self, prefix):
@@ -28,17 +28,17 @@ class GitBackend(BaseBackend):
         And add initial directory to the repo.
 
         """
-        if not os.path.exists(self.repo_path):
-            os.makedirs(self.repo_path)
+        if not os.path.exists(self.location):
+            os.makedirs(self.location)
 
         try:
-            repo = Repo(self.repo_path)
+            repo = Repo(self.location)
         except (InvalidGitRepositoryError, NoSuchPathError, GitCommandError):
-            git = Git(self.repo_path)
+            git = Git(self.location)
             git.init()
-            repo = Repo(self.repo_path)
+            repo = Repo(self.location)
 
-        field_path = os.path.normpath(os.path.join(self.repo_path, prefix))
+        field_path = os.path.normpath(os.path.join(self.location, prefix))
         if not os.path.exists(field_path):
             os.makedirs(field_path)
 
@@ -47,7 +47,7 @@ class GitBackend(BaseBackend):
         fetch revision ``rev`` of entity identified by ``key``.
 
         """
-        repo = Repo(self.repo_path)
+        repo = Repo(self.location)
         try:
             tree = repo.tree(rev)
             for bit in key.split('/'):
@@ -63,16 +63,16 @@ class GitBackend(BaseBackend):
         """
 
         try:
-            fobj = open(os.path.join(self.repo_path, key), 'w')
+            fobj = open(os.path.join(self.location, key), 'w')
         except IOError:
             #parent directory seems to be missing
-            self.initial(os.path.dirname(os.path.join(self.repo_path, key)))
+            self.initial(os.path.dirname(os.path.join(self.location, key)))
             return self.commit(key, data)
         fobj.write(data)
         fobj.close()
-        repo = Repo(self.repo_path)
+        repo = Repo(self.location)
         try:
-            repo.git.add(os.path.join(self.repo_path, key))
+            repo.git.add(os.path.join(self.location, key))
         except:
             raise
         repo.git.commit(message='auto commit from django')
@@ -84,7 +84,7 @@ class GitBackend(BaseBackend):
         Revisions are Git hashes.
 
         """
-        repo = Repo(self.repo_path)
+        repo = Repo(self.location)
         crevs = [r.id for r in repo.log(path=key)]
         return crevs[1:] # cut of the head revision-number
 
@@ -95,7 +95,7 @@ class GitBackend(BaseBackend):
         ``rcskey_format`` of a ``RcsTextField`` was changed.
 
         """
-        repo = Repo(self.repo_path)
+        repo = Repo(self.location)
         try:
             repo.git.mv(key_from, key_to)
             repo.git.commit(message="Moved %s to %s" % (key_from, key_to))

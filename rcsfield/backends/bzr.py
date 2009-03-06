@@ -19,8 +19,8 @@ class BzrBackend(BaseBackend):
 
     """
 
-    def __init__(self, wc_path):
-        self.wc_path = os.path.normpath(wc_path)
+    def __init__(self, location):
+        self.location = os.path.normpath(location)
 
 
     def initial(self, prefix):
@@ -29,16 +29,16 @@ class BzrBackend(BaseBackend):
         And add initial directory to the repo.
 
         """
-        if not os.path.exists(self.wc_path):
-            os.makedirs(self.wc_path)
+        if not os.path.exists(self.location):
+            os.makedirs(self.location)
 
         try:
-            wt = bzrdir.BzrDir.create_standalone_workingtree(self.wc_path)
+            wt = bzrdir.BzrDir.create_standalone_workingtree(self.location)
         except FileExists:
             # already under version control
-            wt = workingtree.WorkingTree.open(self.wc_path)
+            wt = workingtree.WorkingTree.open(self.location)
 
-        field_path = os.path.normpath(os.path.join(self.wc_path, prefix))
+        field_path = os.path.normpath(os.path.join(self.location, prefix))
         if not os.path.exists(field_path):
             os.makedirs(field_path)
             wt.smart_add(['%s' % field_path,])
@@ -50,7 +50,7 @@ class BzrBackend(BaseBackend):
         fetch revision ``rev`` of entity identified by ``key``.
 
         """
-        wt = workingtree.WorkingTree.open(self.wc_path)
+        wt = workingtree.WorkingTree.open(self.location)
         try:
             rt = wt.branch.repository.revision_tree(wt.branch.get_rev_id(int(rev)))
         except BzrNoSuchRevision:
@@ -80,14 +80,14 @@ class BzrBackend(BaseBackend):
         """
 
         try:
-            fobj = open(os.path.join(self.wc_path, key), 'w')
+            fobj = open(os.path.join(self.location, key), 'w')
         except IOError:
             #parent directory seems to be missing
             self.initial(os.path.dirname(key))
             return self.commit(key, data)
         fobj.write(data)
         fobj.close()
-        wt = workingtree.WorkingTree.open(self.wc_path)
+        wt = workingtree.WorkingTree.open(self.location)
         try:
             wt.add([key,])
         except:
@@ -101,7 +101,7 @@ class BzrBackend(BaseBackend):
         Revision Numbers are integers starting at 1.
 
         """
-        wt = workingtree.WorkingTree.open(self.wc_path)
+        wt = workingtree.WorkingTree.open(self.location)
         file_id = wt.path2id(key)
         revisions = wt.branch.repository.all_revision_ids() # bzr ids
 
@@ -137,16 +137,13 @@ class BzrBackend(BaseBackend):
         ``rcskey_format`` of a ``RcsTextField`` was changed.
 
         """
-        wt = workingtree.WorkingTree.open(self.wc_path)
+        wt = workingtree.WorkingTree.open(self.location)
         try:
             wt.rename_one(key_from, key_to)
             wt.commit(message="Moved %s to %s" % (key_from, key_to))
             return True
         except:
             return False
-
-
-
 
 rcs = BzrBackend(settings.BZR_WC_PATH)
 
