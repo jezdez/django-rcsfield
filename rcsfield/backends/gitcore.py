@@ -56,27 +56,28 @@ class GitBackend(BaseBackend):
         except:
             return ''
 
-    def commit(self, key, data):
+    def commit(self, key):
         """
-        commit changed ``data`` to the entity identified by ``key``.
-
+        commit the entity identified by ``key``.
         """
-
-        try:
-            fobj = open(os.path.join(self.location, key), 'w')
-        except IOError:
-            #parent directory seems to be missing
-            self.initial(os.path.dirname(os.path.join(self.location, key)))
-            return self.commit(key, data)
-        fobj.write(data)
-        fobj.close()
+        if not os.path.exists(self.location):
+            # parent directory seems to be missing
+            self.initial(os.path.dirname(key))
+            return self.commit(key)
         repo = Repo(self.location)
         try:
             repo.git.add(os.path.join(self.location, key))
+            repo.git.commit(message='auto commit from django')
         except:
-            raise
-        repo.git.commit(message='auto commit from django')
+            pass
 
+    def remove(self, key):
+        repo = Repo(self.location)
+        try:
+            repo.git.rm(os.path.join(self.location, key))
+            repo.git.commit(message='auto commit from django')
+        except:
+            pass
 
     def get_revisions(self, key):
         """
@@ -103,15 +104,4 @@ class GitBackend(BaseBackend):
         except:
             return False
 
-
-
 rcs = GitBackend(settings.GIT_REPO_PATH)
-
-fetch = rcs.fetch
-commit = rcs.commit
-initial = rcs.initial
-get_revisions = rcs.get_revisions
-move = rcs.move
-diff = rcs.diff
-
-__all__ = ('fetch', 'commit', 'initial', 'get_revisions', 'move', 'diff')

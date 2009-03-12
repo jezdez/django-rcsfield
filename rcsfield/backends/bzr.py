@@ -22,7 +22,6 @@ class BzrBackend(BaseBackend):
     def __init__(self, location):
         self.location = os.path.normpath(location)
 
-
     def initial(self, prefix):
         """
         Set up the brz repo at ``settings.BZR_WC_PATH``.
@@ -43,7 +42,6 @@ class BzrBackend(BaseBackend):
             os.makedirs(field_path)
             wt.smart_add(['%s' % field_path,])
             wt.commit(message="adding initial directory for %s" % prefix)
-
 
     def fetch(self, key, rev):
         """
@@ -72,21 +70,15 @@ class BzrBackend(BaseBackend):
             rt.unlock()
         return olddata
 
-
-    def commit(self, key, data):
+    def commit(self, key):
         """
-        commit changed ``data`` to the entity identified by ``key``.
+        commit the entity identified by ``key``.
 
         """
-
-        try:
-            fobj = open(os.path.join(self.location, key), 'w')
-        except IOError:
-            #parent directory seems to be missing
+        if not os.path.exists(self.location):
+            # parent directory seems to be missing
             self.initial(os.path.dirname(key))
-            return self.commit(key, data)
-        fobj.write(data)
-        fobj.close()
+            return self.commit(key)
         wt = workingtree.WorkingTree.open(self.location)
         try:
             wt.add([key,])
@@ -94,6 +86,13 @@ class BzrBackend(BaseBackend):
             raise
         wt.commit(message='auto commit from django')
 
+    def remove(self, key):
+        wt = workingtree.WorkingTree.open(self.location)
+        try:
+            wt.remove([key,])
+        except:
+            raise
+        wt.commit(message='auto commit from django')
 
     def get_revisions(self, key):
         """
@@ -129,7 +128,6 @@ class BzrBackend(BaseBackend):
         crevs.sort(reverse=True)
         return crevs[1:] #cut of the HEAD revision-number
 
-
     def move(self, key_from, key_to):
         """
         Moves an entity from ``key_from`` to ``key_to`` while keeping
@@ -146,12 +144,3 @@ class BzrBackend(BaseBackend):
             return False
 
 rcs = BzrBackend(settings.BZR_WC_PATH)
-
-fetch = rcs.fetch
-commit = rcs.commit
-initial = rcs.initial
-get_revisions = rcs.get_revisions
-move = rcs.move
-diff = rcs.diff
-
-__all__ = ('fetch', 'commit', 'initial', 'get_revisions', 'move', 'diff')
