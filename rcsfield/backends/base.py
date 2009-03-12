@@ -39,7 +39,6 @@ class BaseBackend(object):
     Base-class for all rcsfield backends.
 
     """
-
     def initial(self):
         """
         called on ``post_syncdb`` can do some initial setup needed for
@@ -48,14 +47,12 @@ class BaseBackend(object):
         """
         pass
 
-
     def commit(self, key, data):
         """
         versionize a change of ``key`` with new ``data``.
 
         """
         raise NotImplementedError
-
 
     def fetch(self, key, rev):
         """
@@ -64,14 +61,12 @@ class BaseBackend(object):
         """
         raise NotImplementedError
 
-
     def get_revisions(self, key):
         """
         return a list of all revisions in which ``key`` changed
 
         """
         raise NotImplementedError
-
 
     def move(self, key_from, key_to):
         """
@@ -81,7 +76,6 @@ class BaseBackend(object):
 
         """
         raise NotImplementedError
-
 
     def diff(self, key1, rev1, key2, rev2):
         """
@@ -94,6 +88,5 @@ class BaseBackend(object):
         diff = difflib.unified_diff(c1.splitlines(1),
                                     c2.splitlines(1),
                                     'Revision: %s' % rev1,
-                                    'Revision: %s' % rev2
-                                    )
+                                    'Revision: %s' % rev2)
         return diff

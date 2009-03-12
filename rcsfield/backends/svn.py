@@ -90,11 +90,3 @@ class SvnBackend(BaseBackend):
         return crevs[1:] # cut of the head revision-number
 
 rcs = SvnBackend(settings.SVN_ROOT, settings.SVN_WC_PATH)
-
-fetch = rcs.fetch
-commit = rcs.commit
-initial = rcs.initial
-get_revisions = rcs.get_revisions
-diff = rcs.diff
-
-__all__ = ('fetch', 'commit', 'initial', 'get_revisions', 'diff')
