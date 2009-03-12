@@ -1,15 +1,18 @@
+import os
+import difflib
 from django.db import models
 from django.conf import settings
-from django.db.models import signals, TextField
+from django.db.models import signals, TextField, FileField
 from django.utils.functional import curry
-from django.utils import simplejson as json
+from django.utils import simplejson
+from django.core.files.base import ContentFile
+from django.utils.encoding import smart_unicode
 
 from manager import RevisionManager
 
 from rcsfield.backends import backend
 from rcsfield.widgets import RcsTextFieldWidget, JsonWidget
-
-
+from rcsfield.storage import RcsFileSystemStorage
 
 class RcsTextField(models.TextField):
     """
@@ -34,26 +37,31 @@ class RcsTextField(models.TextField):
 
     """
 
-
     def __init__(self, *args, **kwargs):
         """
         Allow specifying a different format for the key used to identify
         versionized content in the model-definition.
 
         """
-        if kwargs.get('rcskey_format', False):
-            self.rcskey_format = kwargs['rcskey_format']
-            del kwargs['rcskey_format']
-            #TODO: check if the string has the correct format
-        else:
-            self.rcskey_format = "%s/%s/%s/%s.txt"
-        self.IS_VERSIONED = True # so we can figure out that this field is versionized
+        self.storage = kwargs.pop('storage', RcsFileSystemStorage())
+        #TODO: check if the string has the correct format
+        self.rcskey_format = kwargs.pop('rcskey_format',
+            '%(app_label)s/%(model_name)s/%(field_name)s/%(instance_pk)s.txt')
+        # so we can figure out that this field is versionized
+        self.IS_VERSIONED = True
         TextField.__init__(self, *args, **kwargs)
-
 
     def get_internal_type(self):
         return "TextField"
 
+    def get_key(self, instance):
+        format_kwargs = {
+            'app_label': instance._meta.app_label,
+            'model_name': instance.__class__.__name__,
+            'field_name': self.attname,
+            'instance_pk': instance.pk,
+        }
+        return self.rcskey_format % format_kwargs
 
     def post_save(self, instance=None, **kwargs):
         """
@@ -61,15 +69,9 @@ class RcsTextField(models.TextField):
         called via post_save signal
 
         """
-        data = getattr(instance, self.attname)
-        key = self.rcskey_format % (instance._meta.app_label,
-                                    instance.__class__.__name__,
-                                    self.attname,instance.id)
-        try:
-            backend.commit(key, data.encode('utf-8'))
-        except:
-            raise
-
+        data = getattr(instance, self.attname).encode('utf-8')
+        key = self.get_key(instance)
+        self.storage.save(key, ContentFile(data))
 
     def get_changed_revisions(self, instance, field):
         """
@@ -78,18 +80,10 @@ class RcsTextField(models.TextField):
         changed.
 
         """
-        return backend.get_revisions(self.rcskey_format % (instance._meta.app_label,
-                                                           instance.__class__.__name__,
-                                                           field.attname,
-                                                           instance.id))
-
+        return backend.get_revisions(self.get_key(instance))
 
     def get_FIELD_revisions(self, instance, field):
-        return backend.get_revisions(self.rcskey_format % (instance._meta.app_label,
-                                                           instance.__class__.__name__,
-                                                           field.attname,
-                                                           instance.id))
-
+        return backend.get_revisions(self.get_key(instance))
 
     def get_FIELD_diff(self, instance, rev1, rev2=None, field=None):
         """
@@ -107,40 +101,24 @@ class RcsTextField(models.TextField):
 
         """
 
-
         if rev2 is None:
             rev2 = getattr(instance, '%s_revision' % field.attname, 'head')
 
         if rev1 == rev2: #do not attempt to diff identical content for performance reasons
             return ""
 
+        key = self.get_key(instance)
         if rev2 == 'head':
-            import difflib
-            old = backend.fetch(self.rcskey_format % (instance._meta.app_label,
-                                                      instance.__class__.__name__,
-                                                      field.attname,
-                                                      instance.id),
-                                rev1,
-                               )
-            diff = difflib.unified_diff(old.splitlines(1),
-                                       getattr(instance, field.attname).splitlines(1),
-                                       'Revision: %s' % rev1,
-                                       'Revision: %s' % getattr(instance, "%s_revision" % field.attname, 'head'),
-                                       )
+            old = backend.fetch(key, rev1)
+            diff = difflib.unified_diff(
+                old.splitlines(1),
+                getattr(instance, field.attname).splitlines(1),
+                'Revision: %s' % rev1,
+                'Revision: %s' % getattr(instance, "%s_revision" % field.attname, 'head'),
+            )
             return diff
-
         else: #diff two arbitrary revisions
-            return backend.diff(self.rcskey_format % (instance._meta.app_label,
-                                                      instance.__class__.__name__,
-                                                      field.attname,
-                                                      instance.id),
-                                rev1,
-                                self.rcskey_format % (instance._meta.app_label,
-                                                      instance.__class__.__name__,
-                                                      field.attname,
-                                                      instance.id),
-                                rev2,
-                               )
+            return backend.diff(key, rev1, key, rev2)
 
     def contribute_to_class(self, cls, name):
         super(RcsTextField, self).contribute_to_class(cls, name)
@@ -149,13 +127,10 @@ class RcsTextField(models.TextField):
         setattr(cls, 'get_%s_diff' % self.name, curry(self.get_FIELD_diff, field=self))
         signals.post_save.connect(self.post_save, sender=cls)
 
-
     #def formfield(self, **kwargs):
     #    defaults = {'widget': RcsTextFieldWidget}
     #    defaults.update(**kwargs)
     #    return super(RcsTextField, self).formfield(**defaults)
-
-
 
 class RcsJsonField(RcsTextField):
     """
@@ -168,16 +143,14 @@ class RcsJsonField(RcsTextField):
         if value == "":
             return None
         if isinstance(value, basestring):
-            return json.loads(value)
+            return simplejson.loads(value)
         return value
-
 
     def get_db_prep_save(self, value):
         if value is not None:
             if not isinstance(value, basestring):
-                value = json.dumps(value)
+                value = simplejson.dumps(value)
         return models.TextField.get_db_prep_save(self, value)
-
 
     def formfield(self, **kwargs):
         defaults = {}
@@ -192,10 +165,34 @@ class RcsJsonField(RcsTextField):
 
         """
         data = getattr(instance, self.attname)
-        key = self.rcskey_format % (instance._meta.app_label,
-                                    instance.__class__.__name__,
-                                    self.attname,instance.id)
-        try:
-            backend.commit(key, json.dumps(data)) #.decode().encode('utf-8'))
-        except:
-            raise
+        json_data = simplejson.dumps(data) #.decode().encode('utf-8'))
+        key = self.get_key(instance)
+        self.storage.save(key, ContentFile(json_data))
+
+class RcsFileField(FileField):
+    """
+    A file field that uses the RcsFileStorage backend for version control
+    """
+    def __init__(self, upload_to='', storage=None, **kwargs):
+        if not isinstance(storage, RcsFileSystemStorage):
+            raise TypeError(
+                "'storage' is not an instance of %s." % RcsFileSystemStorage)
+        upload_to = kwargs.get('upload_to',
+            '%(app_label)s/%(model_name)s/%(field_name)s/%(instance_pk)s')
+        super(RcsFileField, self).__init__(upload_to=upload_to, storage=storage, **kwargs)
+
+    def save(self, name, content, save=True):
+        old_name = getattr(self.instance, self.field.name)
+        print old_name, name
+        if old_name != name:
+            self.storage.delete(name)
+        super(RcsFileField, self).save(name, ContentFile(content), save)
+
+    def generate_filename(self, instance, filename):
+        self.upload_to = self.upload_to % {
+            'app_label': instance._meta.app_label,
+            'model_name': instance.__class__.__name__,
+            'field_name': self.attname,
+            'instance_pk': instance.pk,
+        }
+        return os.path.join(self.get_directory_name(), self.get_filename(filename))
