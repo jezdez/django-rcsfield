@@ -5,24 +5,16 @@ from django.core.exceptions import ImproperlyConfigured
 
 __all__ = ('backend')
 
-RCS_BACKEND = getattr(settings, 'RCS_BACKEND', 'dummy')
+RCS_BACKEND = getattr(settings, 'RCS_BACKEND', 'rscfield.backends.dummy')
 
-try:
-    # Try to import one of the bundled backends
-    _import_path = 'rcsfield.backends.'
-    backend = __import__('%s%s' % (_import_path, RCS_BACKEND), {}, {}, [''])
-except ImportError, e:
-    # If the above import failed try to load an external backend
+def get_backend(import_path):
     try:
-        backend = __import__(RCS_BACKEND, {}, {}, [''])
-    except ImportError, e_user:
-        # No backend found, display an error message and a list of all
-        # bundled backends.
-        backend_dir = __path__[0]
-        available_backends = [f.split('.py')[0] for f in os.listdir(backend_dir) if not f.startswith('_') and not f.startswith('.') and not f.endswith('.pyc')]
-        available_backends.sort()
-        if RCS_BACKEND not in available_backends:
-            raise ImproperlyConfigured("%s isn't an available revision control (rcsfield) backend. Available options are: %s" % \
-                                        (RCS_BACKEND, ', '.join(map(repr, available_backends))))
-        else:
-            raise
+        mod = __import__(import_path, {}, {}, [''])
+    except ImportError, e:
+        raise ImproperlyConfigured('Error importing rcsfield backend %s: "%s"' % (import_path, e))
+    try:
+        return getattr(mod, 'rcs')
+    except AttributeError:
+        raise ImproperlyConfigured('Backend "%s" does not define a "rcs" instance.' % import_path)
+
+backend = get_backend(RCS_BACKEND)
